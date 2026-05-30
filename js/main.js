@@ -14,8 +14,8 @@ import {
 /* =========================
    CONFIG
 ========================= */
-const ADMIN_PASSWORD = "Morena7";
-const EXTERNAL_PASSWORD = "Morena7";
+const ADMIN_PASSWORD = "AlexQuest2026";
+const EXTERNAL_PASSWORD = "ItaliaQuestEditor";
 const QUESTIONS_PER_REGION = 12; // <-- metti 10 o 12 qui
 
 /* =========================
@@ -217,6 +217,7 @@ function showAlert(message) {
   return new Promise((resolve) => {
     const overlay = document.createElement("div");
     overlay.className = "modal-overlay";
+    overlay.style.zIndex = 9000;
     const box = document.createElement("div");
     box.className = "modal-box";
     box.innerHTML = `<h3>Attenzione</h3><p>${String(message).replace(/\n/g, "<br>")}</p>`;
@@ -239,6 +240,7 @@ function showAlert(message) {
 function showConfirm(message) {
   return new Promise((resolve) => {
     const overlay = document.createElement("div");
+    overlay.style.zIndex = 9000;
     overlay.className = "modal-overlay";
     const box = document.createElement("div");
     box.className = "modal-box";
@@ -1296,12 +1298,12 @@ function openManageQuestionsModal() {
       const bDel = el("button", { style: "background:#aa2222;color:#fff;border:none;border-radius:8px;padding:6px 8px;cursor:pointer;font-weight:900;" }, "Elimina");
       const bUp = el("button", { style: "background:#004466;color:#fff;border:none;border-radius:8px;padding:6px 8px;cursor:pointer;font-weight:900;" }, "↑");
       const bDn = el("button", { style: "background:#004466;color:#fff;border:none;border-radius:8px;padding:6px 8px;cursor:pointer;font-weight:900;" }, "↓");
-
       bEdit.addEventListener("click", () => {
-        editIndex = idx;
-        fillEditorFromQuestion(q);
-      });
-
+  editIndex = idx;
+  fillEditorFromQuestion(q);
+  editor.scrollIntoView({ behavior: "smooth", block: "center" });
+  qInput.focus();
+});
       bDel.addEventListener("click", async () => {
         const ok = await showConfirm("Eliminare questa domanda?");
         if (!ok) return;
