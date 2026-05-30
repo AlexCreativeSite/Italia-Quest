@@ -136,6 +136,7 @@ let currentRegionName = null;
 let currentQuestionIndex = 0;
 let userAnswers = [];
 let currentQuizQuestions = [];
+let questionBank = {};
 let quizIntervalId = null;
 let quizTimeRemaining = 0;
 
@@ -420,7 +421,79 @@ async function ensureAdminOrAsk() {
   await mpWrite("adminOnline", true);
   return true;
 }
+async function loadQuestionBank() {
+  try {
+    const res = await fetch("./data/question-bank.json", {
+      cache: "no-store"
+    });
 
+    if (!res.ok) {
+      throw new Error("question-bank.json non trovato");
+    }
+
+    questionBank = await res.json();
+
+    console.log(
+      "📚 Archivio Italia Quest caricato:",
+      questionBank
+    );
+
+  } catch (err) {
+
+    console.warn(
+      "📚 Archivio Italia Quest non caricato:",
+      err
+    );
+
+    questionBank = {};
+  }
+}
+
+function getBankQuestionsForRegion(regionCode) {
+
+  const entry =
+    questionBank?.[regionCode];
+
+  if (
+    !entry ||
+    !Array.isArray(entry.questions)
+  ) {
+    return [];
+  }
+
+  return entry.questions.filter((q) =>
+    q &&
+    typeof q.question === "string" &&
+    Array.isArray(q.answers) &&
+    q.answers.length === 4 &&
+    Number(q.correct) >= 0 &&
+    Number(q.correct) <= 3
+  );
+}
+
+function mergeUniqueQuestions(...groups) {
+
+  const seen = new Set();
+  const out = [];
+
+  groups.flat().forEach((q) => {
+
+    const key =
+      String(q.question || "")
+      .trim()
+      .toLowerCase();
+
+    if (!key || seen.has(key)) {
+      return;
+    }
+
+    seen.add(key);
+    out.push(q);
+
+  });
+
+  return out;
+}
 async function ensureExternalPassword() {
   const pwd = await showPrompt("Password gestione esterna:");
   if (pwd === null) return false;
@@ -707,7 +780,7 @@ function closeQuizModal() {
 }
 
 function showQuestion() {
-  if (!quizData?.[currentRegionCode]?.questions) return;
+  if (!currentQuizQuestions.length && !quizData?.[currentRegionCode]?.questions) return;
 
   if (quizIntervalId) clearInterval(quizIntervalId);
   quizIntervalId = null;
@@ -908,9 +981,17 @@ async function startQuizForRegion(regionCode, regionName) {
 
   await showAlert(`Hai scelto ${getRegionNumber(regionCode)}. ${regionName}`);
 
-  const entry = quizData[regionCode];
+ const entry = quizData[regionCode];
 
-  if (!entry || !Array.isArray(entry.questions) || entry.questions.length === 0) {
+const bankQuestions = getBankQuestionsForRegion(regionCode);
+const firebaseQuestions = Array.isArray(entry?.questions) ? entry.questions : [];
+
+const availableQuestions = mergeUniqueQuestions(
+  bankQuestions,
+  firebaseQuestions
+);
+
+if (availableQuestions.length === 0) {
     quizContent.innerHTML = "<p>Nessun quiz disponibile per questa regione.</p>";
 
     prevBtn.style.display = "none";
@@ -925,7 +1006,7 @@ async function startQuizForRegion(regionCode, regionName) {
 
 currentQuestionIndex = 0;
 
-currentQuizQuestions = shuffle(entry.questions)
+currentQuizQuestions = shuffle(availableQuestions)
   .slice(0, QUESTIONS_PER_REGION);
   
 
@@ -2279,6 +2360,7 @@ if (svg) {
    START: init multiplayer room
 ========================= */
 async function bootstrap() {
+  await loadQuestionBank();
   await mpInit({
     defaults: {
       quizData: defaultQuizData,
