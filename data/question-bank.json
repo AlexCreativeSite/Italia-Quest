@@ -1,0 +1,29 @@
+{
+  "IT-25": {
+    "region": "Piemonte",
+    "questions": [
+  {
+    "question": "Quale ingrediente è tradizionalmente fondamentale nella Bagna Cauda piemontese?",
+    "answers": [
+      "Acciughe",
+      "Mozzarella",
+      "Zafferano",
+      "Pecorino"
+    ],
+    "correct": 0
+  }
+]
+  },
+  "IT-23": {
+    "region": "Valle d'Aosta",
+    "questions": []
+  },
+  "IT-21": {
+    "region": "Lombardia",
+    "questions": []
+  },
+  "IT-42": {
+    "region": "Liguria",
+    "questions": []
+  }
+}
