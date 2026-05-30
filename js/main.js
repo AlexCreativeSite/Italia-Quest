@@ -681,7 +681,6 @@ async function toggleRegionCompleted(code) {
   if (isDone) await mpWrite(`completedRegions/${code}`, null);
   else await mpWrite(`completedRegions/${code}`, true);
 }
-
 /* =========================
    QUIZ UI
 ========================= */
@@ -689,13 +688,17 @@ function openQuizModal() {
   if (!quizModal) return;
   quizModal.classList.add("active");
 }
+
 function closeQuizModal() {
   if (!quizModal) return;
   quizModal.classList.remove("active");
+
   if (quizIntervalId) clearInterval(quizIntervalId);
   quizIntervalId = null;
+
   if (quizFeedback) quizFeedback.textContent = "";
   if (quizTimerElem) quizTimerElem.textContent = "";
+
   if (prevBtn) prevBtn.style.display = "inline-block";
   if (nextBtn) nextBtn.style.display = "inline-block";
 }
@@ -707,6 +710,7 @@ function showQuestion() {
   quizIntervalId = null;
 
   quizTimeRemaining = quizTimeLimit;
+
   if (quizTimerElem) {
     quizTimerElem.style.display = "block";
     quizTimerElem.style.color = "";
@@ -732,38 +736,63 @@ function showQuestion() {
   questionP.textContent = q.question;
   quizContent.appendChild(questionP);
 
-  q.answers.forEach((a, i) => {
+  const shuffledAnswers = q.answers
+    .map((answer, originalIndex) => ({ answer, originalIndex }))
+    .sort(() => Math.random() - 0.5);
+
+  shuffledAnswers.forEach(({ answer, originalIndex }) => {
     const btn = document.createElement("button");
-    btn.textContent = a;
+
+    btn.textContent = answer;
     btn.className = "answer-btn";
+    btn.dataset.originalIndex = String(originalIndex);
 
     if (userAnswers[currentQuestionIndex] !== null) {
-      if (i === userAnswers[currentQuestionIndex]) {
-        btn.classList.add(i === q.correct ? "correct" : "wrong");
+      if (originalIndex === q.correct) {
+        btn.classList.add("correct");
       }
+
+      if (
+        originalIndex === userAnswers[currentQuestionIndex] &&
+        originalIndex !== q.correct
+      ) {
+        btn.classList.add("wrong");
+      }
+
       btn.disabled = true;
     }
 
-    btn.addEventListener("click", () => selectAnswer(i));
+    btn.addEventListener("click", () => selectAnswer(originalIndex));
     quizContent.appendChild(btn);
   });
 
   prevBtn.disabled = currentQuestionIndex === 0;
-  nextBtn.textContent = (currentQuestionIndex === total - 1) ? "Termina" : "Successiva";
+  nextBtn.textContent =
+    currentQuestionIndex === total - 1 ? "Termina" : "Successiva";
 
   quizIntervalId = setInterval(() => {
     quizTimeRemaining--;
+
     if (quizTimerElem) {
       quizTimerElem.textContent = `Tempo rimasto: ${quizTimeRemaining}s`;
-      quizTimerElem.style.color = (quizTimeRemaining <= 5) ? "#ff4444" : "";
+      quizTimerElem.style.color = quizTimeRemaining <= 5 ? "#ff4444" : "";
     }
+
     if (quizTimeRemaining <= 0) {
       clearInterval(quizIntervalId);
       quizIntervalId = null;
 
       const buttons = quizContent.querySelectorAll(".answer-btn");
-      buttons.forEach((b) => (b.disabled = true));
-      buttons.forEach((b, idx) => { if (idx === q.correct) b.classList.add("correct"); });
+
+      buttons.forEach((btn) => {
+        const originalIndex = Number(btn.dataset.originalIndex);
+        btn.disabled = true;
+
+        if (originalIndex === q.correct) {
+          btn.classList.add("correct");
+        }
+      });
+
       if (quizFeedback) quizFeedback.textContent = "Tempo scaduto!";
 
       setTimeout(() => nextBtnHandler(), 800);
@@ -779,10 +808,17 @@ function selectAnswer(selectedIndex) {
 
   const q = quizData[currentRegionCode].questions[currentQuestionIndex];
   const buttons = quizContent.querySelectorAll(".answer-btn");
-  buttons.forEach((btn, idx) => {
+
+  buttons.forEach((btn) => {
+    const originalIndex = Number(btn.dataset.originalIndex);
+
     btn.disabled = true;
-    if (idx === q.correct) btn.classList.add("correct");
-    else if (idx === selectedIndex) btn.classList.add("wrong");
+
+    if (originalIndex === q.correct) {
+      btn.classList.add("correct");
+    } else if (originalIndex === selectedIndex) {
+      btn.classList.add("wrong");
+    }
   });
 }
 
@@ -797,13 +833,17 @@ async function nextBtnHandler() {
   }
 
   let correctCount = 0;
-  userAnswers.forEach((ans, idx) => { if (ans === questions[idx].correct) correctCount++; });
+
+  userAnswers.forEach((ans, idx) => {
+    if (ans === questions[idx].correct) correctCount++;
+  });
 
   if (quizFeedback) {
     quizFeedback.textContent = `Hai risposto correttamente a ${correctCount} su ${totalQuestions} domande.`;
   }
 
   const uid = getCurrentTurnUid();
+
   if (!uid) {
     await showAlert("Errore: turno non valido.");
     closeQuizModal();
@@ -813,19 +853,28 @@ async function nextBtnHandler() {
   const win = correctCount >= 3;
 
   await mpInc(uid, "games");
+
   if (win) await mpInc(uid, "wins");
   else await mpInc(uid, "losses");
 
   if (win) {
-    await showAlert(`Complimenti! Hai vinto il quiz su ${getRegionNumber(currentRegionCode)}. ${currentRegionName}!`);
-    const open = await showConfirm(`Vuoi aprire il pacco per ${getRegionNumber(currentRegionCode)}. ${currentRegionName}?`);
+    await showAlert(
+      `Complimenti! Hai vinto il quiz su ${getRegionNumber(currentRegionCode)}. ${currentRegionName}!`
+    );
+
+    const open = await showConfirm(
+      `Vuoi aprire il pacco per ${getRegionNumber(currentRegionCode)}. ${currentRegionName}?`
+    );
+
     if (open) {
       closeQuizModal();
       await showPaccoModal(currentRegionCode, currentRegionName);
       return;
     }
   } else {
-    await showAlert("Mi dispiace, non hai superato il quiz e non puoi aprire il pacco.");
+    await showAlert(
+      "Mi dispiace, non hai superato il quiz e non puoi aprire il pacco."
+    );
   }
 
   closeQuizModal();
@@ -833,8 +882,15 @@ async function nextBtnHandler() {
 }
 
 async function startQuizForRegion(regionCode, regionName) {
-  if (!adminOnline) { await showAlert("Gioco non attivo: attendi che l'admin avvii la sessione."); return; }
-  if (!turnOrder || turnOrder.length === 0) { await showAlert("Seleziona almeno un giocatore."); return; }
+  if (!adminOnline) {
+    await showAlert("Gioco non attivo: attendi che l'admin avvii la sessione.");
+    return;
+  }
+
+  if (!turnOrder || turnOrder.length === 0) {
+    await showAlert("Seleziona almeno un giocatore.");
+    return;
+  }
 
   currentRegionCode = regionCode;
   currentRegionName = regionName;
@@ -842,12 +898,16 @@ async function startQuizForRegion(regionCode, regionName) {
   await showAlert(`Hai scelto ${getRegionNumber(regionCode)}. ${regionName}`);
 
   const entry = quizData[regionCode];
+
   if (!entry || !Array.isArray(entry.questions) || entry.questions.length === 0) {
     quizContent.innerHTML = "<p>Nessun quiz disponibile per questa regione.</p>";
+
     prevBtn.style.display = "none";
     nextBtn.style.display = "none";
     quizImage.style.display = "none";
+
     if (quizTimerElem) quizTimerElem.style.display = "none";
+
     openQuizModal();
     return;
   }
@@ -856,6 +916,7 @@ async function startQuizForRegion(regionCode, regionName) {
   userAnswers = new Array(entry.questions.length).fill(null);
 
   const imgUrl = imagesData?.[regionCode];
+
   if (imgUrl && imgUrl.trim() !== "") {
     quizImage.src = imgUrl;
     quizImage.alt = regionName;
@@ -865,13 +926,13 @@ async function startQuizForRegion(regionCode, regionName) {
   }
 
   if (quizFeedback) quizFeedback.textContent = "";
+
   prevBtn.style.display = "inline-block";
   nextBtn.style.display = "inline-block";
 
   showQuestion();
   openQuizModal();
 }
-
 /* =========================
    PACCHI
 ========================= */
