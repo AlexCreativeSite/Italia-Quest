@@ -18,7 +18,7 @@ const ADMIN_PASSWORD = "AlexQuest2026";
 const EXTERNAL_PASSWORD = "ItaliaQuestEditor";
 
 const QUESTIONS_PER_REGION = 12; // domande per partita
-const QUESTION_POOL_SIZE = 40;   // domande generate da Wiki per regione
+const QUESTION_POOL_SIZE = 12;   // domande generate da Wiki per regione
 
 /* =========================
    DEFAULT DATA (20 regioni)
@@ -1246,7 +1246,7 @@ while (qs.length < targetCount && safety < 200) {
   safety++;
 
   const mode = qs.length % 5;
-  
+
     if (mode === 0 && cap !== "N/D") {
       addUniqueQuestion(qs, makeMCQ({
         question: `Tra queste città, quale è collegata a ${region} come capoluogo?`,
