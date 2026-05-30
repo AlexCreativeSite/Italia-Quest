@@ -16,7 +16,9 @@ import {
 ========================= */
 const ADMIN_PASSWORD = "AlexQuest2026";
 const EXTERNAL_PASSWORD = "ItaliaQuestEditor";
-const QUESTIONS_PER_REGION = 12; // <-- metti 10 o 12 qui
+
+const QUESTIONS_PER_REGION = 12; // domande per partita
+const QUESTION_POOL_SIZE = 40;   // domande generate da Wiki per regione
 
 /* =========================
    DEFAULT DATA (20 regioni)
@@ -133,6 +135,7 @@ let currentRegionCode = null;
 let currentRegionName = null;
 let currentQuestionIndex = 0;
 let userAnswers = [];
+let currentQuizQuestions = [];
 let quizIntervalId = null;
 let quizTimeRemaining = 0;
 
@@ -717,7 +720,9 @@ function showQuestion() {
     quizTimerElem.textContent = `Tempo rimasto: ${quizTimeRemaining}s`;
   }
 
-  const questions = quizData[currentRegionCode].questions;
+  const questions = currentQuizQuestions.length
+  ? currentQuizQuestions
+  : quizData[currentRegionCode].questions;
   const total = questions.length;
   const q = questions[currentQuestionIndex];
 
@@ -806,7 +811,11 @@ function selectAnswer(selectedIndex) {
 
   userAnswers[currentQuestionIndex] = selectedIndex;
 
-  const q = quizData[currentRegionCode].questions[currentQuestionIndex];
+ const questions = currentQuizQuestions.length
+  ? currentQuizQuestions
+  : quizData[currentRegionCode].questions;
+
+const q = questions[currentQuestionIndex];
   const buttons = quizContent.querySelectorAll(".answer-btn");
 
   buttons.forEach((btn) => {
@@ -823,7 +832,9 @@ function selectAnswer(selectedIndex) {
 }
 
 async function nextBtnHandler() {
-  const questions = quizData[currentRegionCode].questions;
+  const questions = currentQuizQuestions.length
+  ? currentQuizQuestions
+  : quizData[currentRegionCode].questions;
   const totalQuestions = questions.length;
 
   if (currentQuestionIndex < totalQuestions - 1) {
@@ -912,8 +923,13 @@ async function startQuizForRegion(regionCode, regionName) {
     return;
   }
 
-  currentQuestionIndex = 0;
-  userAnswers = new Array(entry.questions.length).fill(null);
+currentQuestionIndex = 0;
+
+currentQuizQuestions = shuffle(entry.questions)
+  .slice(0, QUESTIONS_PER_REGION);
+  
+
+userAnswers = new Array(currentQuizQuestions.length).fill(null);
 
   const imgUrl = imagesData?.[regionCode];
 
@@ -1031,11 +1047,12 @@ async function startPacchiForRegion(regionCode, regionName) {
 }
 
 /* =========================
-   ✅ WIKI ENGINE (robusto) + AUTO BUILDER
-   - MediaWiki API con origin=*
-   - thumbnail + extract
-   - 12 domande per regione
+   WIKI ENGINE V2
+   - genera archivio ampio
+   - evita ripetizioni banali
+   - crea 40 domande candidate
 ========================= */
+
 function normalizeWikiTitle(name) {
   return String(name || "")
     .trim()
@@ -1077,8 +1094,26 @@ function firstSentence(extract) {
   const s = String(extract || "").trim();
   if (!s) return "";
   const idx = s.indexOf(".");
-  const cut = (idx > 20) ? s.slice(0, idx + 1) : s;
-  return cut.trim();
+  return idx > 20 ? s.slice(0, idx + 1).trim() : s;
+}
+
+function splitWikiSentences(extract) {
+  return String(extract || "")
+    .replace(/\n+/g, " ")
+    .split(/(?<=[.!?])\s+/)
+    .map(s => s.trim())
+    .filter(s =>
+      s.length >= 60 &&
+      s.length <= 260 &&
+      !s.includes("coordinate") &&
+      !s.includes("ISBN")
+    )
+    .slice(0, 16);
+}
+
+function shortText(text, max = 160) {
+  const s = String(text || "").trim();
+  return s.length > max ? s.slice(0, max).trim() + "…" : s;
 }
 
 function shuffle(arr) {
@@ -1096,11 +1131,22 @@ function uniq(arr) {
 
 function makeMCQ({ question, correct, distractors }) {
   const answers = shuffle(uniq([correct, ...distractors]).slice(0, 4));
-  while (answers.length < 4) answers.push("");
-  return { question, answers, correct: Math.max(0, answers.indexOf(correct)) };
+  while (answers.length < 4) answers.push("N/D");
+  return {
+    question,
+    answers,
+    correct: Math.max(0, answers.indexOf(correct)),
+  };
 }
 
-function buildQuestionsForRegion(code, snippetsByCode, targetCount = QUESTIONS_PER_REGION) {
+function addUniqueQuestion(list, q) {
+  if (!q || !q.question || !Array.isArray(q.answers)) return;
+  if (list.some(item => item.question === q.question)) return;
+  if (q.answers.length < 4) return;
+  list.push(q);
+}
+
+function buildQuestionsForRegion(code, snippetsByCode, targetCount = QUESTION_POOL_SIZE) {
   const region = quizData[code]?.region || defaultQuizData[code]?.region || code;
 
   const cap = CAPOLUOGHI[code] || "N/D";
@@ -1109,101 +1155,129 @@ function buildQuestionsForRegion(code, snippetsByCode, targetCount = QUESTIONS_P
   const allCaps = Object.values(CAPOLUOGHI).filter(Boolean);
   const allAreas = ["Nord", "Centro", "Sud", "Isole"];
 
-  const mySnippet = snippetsByCode[code] || "";
-  const otherCodes = Object.keys(snippetsByCode).filter((c) => c !== code && snippetsByCode[c]);
-  const otherSnippets = shuffle(otherCodes).slice(0, 3).map((c) => snippetsByCode[c]);
+  const mySentences = snippetsByCode[code]?.sentences || [];
+  const mySnippet = snippetsByCode[code]?.first || "";
+
+  const otherCodes = Object.keys(snippetsByCode).filter(c => c !== code);
+  const otherSentences = otherCodes
+    .flatMap(c => snippetsByCode[c]?.sentences || [])
+    .filter(Boolean);
+
+  const otherRegions = regionList()
+    .filter(c => c !== code)
+    .map(c => quizData[c]?.region || defaultQuizData[c]?.region || c);
 
   const qs = [];
 
+  // 1 sola domanda facile sul capoluogo
   if (cap !== "N/D") {
-    qs.push(makeMCQ({
+    addUniqueQuestion(qs, makeMCQ({
       question: `Qual è il capoluogo di ${region}?`,
       correct: cap,
       distractors: pickRandomDifferent(allCaps, [cap], 3),
     }));
   }
 
-  qs.push(makeMCQ({
+  // 1 sola domanda geografica generale
+  addUniqueQuestion(qs, makeMCQ({
     question: `In quale macro-area si trova ${region}?`,
     correct: area,
     distractors: pickRandomDifferent(allAreas, [area], 3),
   }));
 
-  if (mySnippet) {
-    const myShort = mySnippet.length > 160 ? mySnippet.slice(0, 160).trim() + "…" : mySnippet;
-    const optsRaw = [myShort, ...otherSnippets.map((s) => (s.length > 160 ? s.slice(0, 160).trim() + "…" : s))];
-    const opts = shuffle(optsRaw);
-    while (opts.length < 4) opts.push("È una regione d'Italia con un importante patrimonio storico e culturale.");
-    qs.push({
-      question: `Quale descrizione (Wikipedia) si riferisce a ${region}?`,
-      answers: opts.slice(0, 4),
-      correct: Math.max(0, opts.indexOf(myShort)),
-    });
-  }
-
+  // domanda inversa sul capoluogo, ma una sola
   if (cap !== "N/D") {
-    const otherRegions = regionList()
-      .filter((c) => c !== code)
-      .map((c) => quizData[c]?.region || defaultQuizData[c]?.region || c);
-    qs.push(makeMCQ({
+    addUniqueQuestion(qs, makeMCQ({
       question: `Quale regione ha come capoluogo ${cap}?`,
       correct: region,
       distractors: pickRandomDifferent(otherRegions, [region], 3),
     }));
   }
 
-  // filler fino a targetCount (sempre 4 opzioni)
+  // domande da frasi Wikipedia diverse
+  const prompts = [
+    `Quale descrizione si riferisce a ${region}?`,
+    `Quale informazione riguarda ${region}?`,
+    `Quale frase descrive meglio ${region}?`,
+    `Quale caratteristica è associata a ${region}?`,
+    `Quale dettaglio appartiene alla scheda di ${region}?`,
+    `Quale tra queste affermazioni parla di ${region}?`,
+  ];
+
+  mySentences.forEach((sentence, index) => {
+    const correct = shortText(sentence);
+    const distractors = shuffle(otherSentences)
+      .slice(0, 3)
+      .map(s => shortText(s));
+
+    if (distractors.length >= 3) {
+      addUniqueQuestion(qs, {
+        question: prompts[index % prompts.length],
+        answers: shuffle([correct, ...distractors]),
+        correct: 0,
+      });
+
+      const last = qs[qs.length - 1];
+      if (last) last.correct = last.answers.indexOf(correct);
+    }
+  });
+
+  // domande descrittive controllate
+  if (mySnippet) {
+    const correct = shortText(mySnippet);
+    const distractors = shuffle(otherCodes)
+      .slice(0, 3)
+      .map(c => shortText(snippetsByCode[c]?.first || "Regione italiana ricca di storia e cultura."));
+
+    addUniqueQuestion(qs, {
+      question: `Quale breve descrizione appartiene a ${region}?`,
+      answers: shuffle([correct, ...distractors]),
+      correct: 0,
+    });
+
+    const last = qs[qs.length - 1];
+    if (last) last.correct = last.answers.indexOf(correct);
+  }
+
+  // filler non ripetitivo, solo se Wiki dà poche frasi
   while (qs.length < targetCount) {
-    const mode = qs.length % 4;
+    const mode = qs.length % 5;
 
     if (mode === 0 && cap !== "N/D") {
-      qs.push(makeMCQ({
-        question: `Seleziona il capoluogo corretto di ${region}.`,
+      addUniqueQuestion(qs, makeMCQ({
+        question: `Tra queste città, quale è collegata a ${region} come capoluogo?`,
         correct: cap,
         distractors: pickRandomDifferent(allCaps, [cap], 3),
       }));
     } else if (mode === 1) {
-      qs.push(makeMCQ({
-        question: `${region} appartiene a quale macro-area?`,
+      addUniqueQuestion(qs, makeMCQ({
+        question: `${region} appartiene principalmente a quale area italiana?`,
         correct: area,
         distractors: pickRandomDifferent(allAreas, [area], 3),
       }));
-    } else if (mode === 2) {
-      // "tra queste città, quale è capoluogo di regione?" (corretta = cap)
-      const wrongs = pickRandomDifferent(allCaps, [cap], 3);
-      qs.push(makeMCQ({
-        question: `Tra queste città, quale è un capoluogo di regione?`,
-        correct: cap,
-        distractors: wrongs,
-      }));
     } else {
-      const sentence = mySnippet || `È una regione d'Italia con un patrimonio storico e culturale importante.`;
-      const short = sentence.length > 140 ? sentence.slice(0, 140).trim() + "…" : sentence;
-      const opts = shuffle([
-        short,
-        "È una regione nota per paesaggi e tradizioni locali.",
-        "È una regione con territori tra montagne e pianure.",
-        "È una regione con città e borghi di grande interesse.",
-      ]);
-      qs.push({
-        question: `Quale descrizione si riferisce a ${region}?`,
-        answers: opts,
-        correct: Math.max(0, opts.indexOf(short)),
+      const genericCorrect = `${region} è una regione italiana con una propria identità storica, geografica e culturale.`;
+      addUniqueQuestion(qs, {
+        question: `Quale frase generica è corretta per ${region}?`,
+        answers: shuffle([
+          genericCorrect,
+          "È uno Stato indipendente dell'Europa centrale.",
+          "È una regione situata fuori dal territorio italiano.",
+          "È una città metropolitana senza territorio regionale.",
+        ]),
+        correct: 0,
       });
+
+      const last = qs[qs.length - 1];
+      if (last) last.correct = last.answers.indexOf(genericCorrect);
     }
+
+    if (qs.length >= targetCount) break;
   }
 
-  return qs.slice(0, targetCount);
+  return shuffle(qs).slice(0, targetCount);
 }
 
-/**
- * Auto update da Wiki:
- * - updateQuestions: rigenera domande (QUESTIONS_PER_REGION per regione)
- * - updatePacchiText: aggiorna testo pacchi
- * - updateRegionImages: immagine quiz (thumbnail)
- * - updatePacchiImages: immagine pacchi (thumbnail)
- * - overwriteImages: se true sovrascrive anche se già presenti
- */
 async function autoUpdateFromWiki({
   updateQuestions = true,
   updatePacchiText = true,
@@ -1219,8 +1293,11 @@ async function autoUpdateFromWiki({
 
     try {
       const { extract, thumb } = await wikiQuery({ title: regionName, thumbSize: 900 });
-      const sn = firstSentence(extract);
-      snippets[code] = sn || "";
+
+      snippets[code] = {
+        first: firstSentence(extract),
+        sentences: splitWikiSentences(extract),
+      };
 
       if (updateRegionImages) {
         const exists = String(imagesData?.[code] || "").trim();
@@ -1230,13 +1307,26 @@ async function autoUpdateFromWiki({
       }
 
       if (updatePacchiText) {
-        pacchiData[code] = pacchiData[code] || { region: regionName, pack: "", imageUrl: "", effect: { type: "none" } };
+        pacchiData[code] = pacchiData[code] || {
+          region: regionName,
+          pack: "",
+          imageUrl: "",
+          effect: { type: "none" },
+        };
+
         const base = extract || `Pacco ispirato a ${regionName}.`;
-        pacchiData[code].pack = `✨ Dal Wiki: ${base.length > 320 ? base.slice(0, 320).trim() + "…" : base}`;
+        pacchiData[code].pack =
+          `✨ Dal Wiki: ${base.length > 320 ? base.slice(0, 320).trim() + "…" : base}`;
       }
 
       if (updatePacchiImages) {
-        pacchiData[code] = pacchiData[code] || { region: regionName, pack: "", imageUrl: "", effect: { type: "none" } };
+        pacchiData[code] = pacchiData[code] || {
+          region: regionName,
+          pack: "",
+          imageUrl: "",
+          effect: { type: "none" },
+        };
+
         const exists = String(pacchiData[code].imageUrl || "").trim();
         if (overwriteImages || !exists) {
           if (thumb) pacchiData[code].imageUrl = thumb;
@@ -1244,14 +1334,22 @@ async function autoUpdateFromWiki({
       }
     } catch (e) {
       console.warn("Wiki fail:", code, regionName, e);
-      snippets[code] = snippets[code] || "";
+      snippets[code] = { first: "", sentences: [] };
     }
   }
 
   if (updateQuestions) {
     for (const code of codes) {
-      quizData[code] = quizData[code] || { region: defaultQuizData[code]?.region || code, questions: [] };
-      quizData[code].questions = buildQuestionsForRegion(code, snippets, QUESTIONS_PER_REGION);
+      quizData[code] = quizData[code] || {
+        region: defaultQuizData[code]?.region || code,
+        questions: [],
+      };
+
+      quizData[code].questions = buildQuestionsForRegion(
+        code,
+        snippets,
+        QUESTION_POOL_SIZE
+      );
     }
   }
 
