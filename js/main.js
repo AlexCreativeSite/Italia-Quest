@@ -1240,9 +1240,13 @@ function buildQuestionsForRegion(code, snippetsByCode, targetCount = QUESTION_PO
   }
 
   // filler non ripetitivo, solo se Wiki dà poche frasi
-  while (qs.length < targetCount) {
-    const mode = qs.length % 5;
+let safety = 0;
 
+while (qs.length < targetCount && safety < 200) {
+  safety++;
+
+  const mode = qs.length % 5;
+  
     if (mode === 0 && cap !== "N/D") {
       addUniqueQuestion(qs, makeMCQ({
         question: `Tra queste città, quale è collegata a ${region} come capoluogo?`,
