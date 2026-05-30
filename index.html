@@ -2,14 +2,21 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
-  <title>Quiz Regioni Italia + Cultura, Arte, Musica, Cucina, Spettacolo</title>
+ <title>Italia Quest | Alex Creative</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #1a73e8, #3c8dbc);
+      background:
+linear-gradient(
+135deg,
+#07111f 0%,
+#101d36 35%,
+#1a1440 70%,
+#07111f 100%
+);
       color: #eee;
       display: flex;
       flex-direction: column;
@@ -28,12 +35,86 @@
       pointer-events: none;
       z-index: 0;
     }
-    h1 {
-      margin: 1rem;
-      z-index: 1;
-      text-shadow: 0 0 10px rgba(0,0,0,0.7);
-      text-align: center;
-    }
+    h1{
+  margin:1rem;
+  z-index:1;
+  text-align:center;
+
+  color:#ffffff;
+
+  font-size:3rem;
+
+  letter-spacing:3px;
+
+  text-shadow:
+  0 0 10px #00f6ff,
+  0 0 25px #00f6ff,
+  0 0 40px #b06cff;
+}
+    .subtitle {
+  z-index: 1;
+  margin-top: -0.5rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  color: #bfefff;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-shadow: 0 0 12px rgba(0, 246, 255, 0.55);
+}
+.hero-box{
+  z-index:1;
+
+  max-width:900px;
+
+  width:90%;
+
+  margin:10px auto 25px auto;
+
+  padding:20px;
+
+  border-radius:20px;
+
+  background:
+  rgba(0,0,0,.25);
+
+  backdrop-filter:blur(8px);
+
+  border:
+  1px solid rgba(0,246,255,.25);
+
+  text-align:center;
+
+  box-shadow:
+  0 0 25px rgba(0,246,255,.15),
+  0 0 50px rgba(176,108,255,.15);
+}
+
+.hero-logo{
+  font-size:52px;
+  margin-bottom:10px;
+}
+
+.hero-title{
+  font-size:28px;
+  font-weight:900;
+
+  color:white;
+
+  text-shadow:
+  0 0 10px #00f6ff,
+  0 0 20px #b06cff;
+}
+
+.hero-text{
+  margin-top:10px;
+
+  color:#dcecff;
+
+  font-size:16px;
+
+  line-height:1.6;
+}
+
     .visually-hidden {
       position: absolute !important;
       width: 1px; height: 1px;
@@ -75,7 +156,11 @@
       display: block;
       filter: brightness(0.85) contrast(1.15);
       border-radius: 18px;
-      box-shadow: 0 0 30px rgba(0,0,0,0.7);
+     box-shadow:
+0 0 25px rgba(0,0,0,.8),
+0 0 40px rgba(0,246,255,.25),
+0 0 60px rgba(176,108,255,.25);
+      border:2px solid rgba(0,246,255,.35);
     }
     #map-svg {
       position: absolute;
@@ -90,7 +175,7 @@
       r: 12;
       transition: r 0.3s ease, filter 0.3s ease;
       filter: drop-shadow(0 0 6px rgba(0,0,0,0.4));
-      fill: #4287f5;
+      fill:#00f6ff;
     }
     #map-svg g:hover circle {
       r: 18;
@@ -106,7 +191,7 @@
     #map-svg text.region-number {
       font-weight: 700;
       font-size: 14px;
-      fill: yellow;
+      fill:#ffffff;
       stroke: black;
       stroke-width: 1;
       paint-order: stroke;
@@ -133,10 +218,19 @@
       width: 320px;
       max-height: 80vh;
       overflow-y: auto;
-      background: #222a44;
+      background:
+linear-gradient(
+180deg,
+rgba(10,20,40,.95),
+rgba(20,25,60,.95)
+);
       color: #eee;
-      border-radius: 12px;
-      box-shadow: 0 0 25px rgba(0,0,0,0.8);
+     border-radius: 20px;
+     border:1px solid rgba(0,246,255,.25);
+     box-shadow:
+0 0 25px rgba(0,0,0,.8),
+0 0 35px rgba(0,246,255,.15),
+0 0 60px rgba(176,108,255,.15);
       padding: 1.5rem;
       z-index: 2000;
     }
@@ -260,10 +354,19 @@
       position: fixed;
       top: 80px;
       left: 10px;
-      background: #222a44;
+      background:
+linear-gradient(
+180deg,
+rgba(10,20,40,.95),
+rgba(20,25,60,.95)
+);
       padding: 1rem;
-      border-radius: 10px;
-      box-shadow: 0 0 10px #000;
+      border-radius: 20px;
+      border:1px solid rgba(0,246,255,.25);
+      box-shadow:
+0 0 20px rgba(0,0,0,.8),
+0 0 30px rgba(0,246,255,.15),
+0 0 50px rgba(176,108,255,.15);
       z-index: 1500;
       width: 260px;
       color: #aad4ff;
@@ -593,7 +696,28 @@
 
 <body>
 
-<h1>Quiz Interattivo: Regioni d’Italia + Cultura, Arte, Musica, Cucina, Spettacolo</h1>
+<h1>Italia Quest</h1>
+
+<p class="subtitle">Esplora • Gioca • Scopri le Regioni d’Italia</p>
+
+
+
+<div class="hero-box">
+
+  <div class="hero-logo">
+    🇮🇹
+  </div>
+
+  <div class="hero-title">
+    Benvenuto in Italia Quest
+  </div>
+
+  <div class="hero-text">
+    Quiz, Cultura, Musica, Arte, Tradizioni,
+    Curiosità e Scoperte delle Regioni Italiane.
+  </div>
+
+</div>
 
 <div id="admin-status">Admin Online: OFF</div>
 <button id="admin-login-btn">Login Admin</button>
@@ -612,17 +736,19 @@
 </div>
 
 <div id="player-selection">
-  <label><strong>Seleziona Giocatori:</strong></label>
+  <label><strong>🌍 Esploratori Online</strong></label>
   <ul id="player-list"></ul>
   <div id="players-info">
-    <p><strong>Giocatori selezionati:</strong></p>
-    <div id="selected-players-details">Nessun giocatore selezionato.</div>
+    <p><strong>⭐ Squadra Attiva</strong></p>
+    <div id="selected-players-details">Nessun esploratore selezionato.</div>
   </div>
-  <button id="reset-selection-btn">Reset Selezioni</button>
+  <button id="reset-selection-btn">🔄 Reset Squadra</button>
 </div>
 
 <div id="register-modal" role="dialog" aria-modal="true" aria-labelledby="register-title" class="active">
-  <h2 id="register-title">Registrazione e Classifica Partecipanti</h2>
+  <h2 id="register-title">
+🏆 Community Italia Quest
+</h2>
 
   <div id="game-mode-in-register">
     <p>Modalità di gioco:</p>
@@ -645,16 +771,20 @@
   </div>
 
   <form id="register-form">
-    <label for="nickname">Inserisci il tuo Nickname:</label>
+    <label for="nickname">
+👤 Nome Esploratore:
+</label>
     <input type="text" id="nickname" name="nickname" required minlength="3" maxlength="20"
            placeholder="Nickname" autocomplete="off" />
-    <button type="submit">Registrati</button>
+    <button type="submit">
+🚀 Inizia l'Avventura
+</button>
   </form>
 
   <div id="register-msg" aria-live="polite"></div>
 
   <div id="leaderboard">
-    <h3>Classifica Partecipanti</h3>
+   <h3>🏅 Classifica Esploratori</h3>
     <table>
       <thead>
         <tr><th>#</th><th>Nickname</th><th>Vittorie</th><th>Sconfitte</th><th>Partite</th><th>Punteggio</th></tr>
