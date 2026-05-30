@@ -68,9 +68,9 @@ linear-gradient(
 
   width:90%;
 
-  margin:10px auto 25px auto;
+  margin:10px auto 15px auto;
 
-  padding:20px;
+  padding:15px;
 
   border-radius:20px;
 
@@ -94,6 +94,19 @@ linear-gradient(
   margin-bottom:10px;
 }
 
+.hero-logo-img{
+
+  width:240px;
+
+  max-width:90%;
+
+  height:auto;
+
+  filter:
+  drop-shadow(0 0 15px rgba(0,246,255,.45))
+  drop-shadow(0 0 35px rgba(176,108,255,.30));
+
+}
 .hero-title{
   font-size:28px;
   font-weight:900;
@@ -410,26 +423,56 @@ rgba(20,25,60,.95)
     }
     #reset-selection-btn:hover { background: #a83232; }
 
-    #menu-toggle-btn {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      background: #00aaff;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 0.4rem 0.8rem;
-      cursor: pointer;
-      z-index: 2300;
-    }
+   #menu-toggle-btn{
+
+  position:fixed;
+  top:10px;
+  right:10px;
+
+  background:
+  linear-gradient(
+  135deg,
+  #00f6ff,
+  #b06cff
+  );
+
+  color:white;
+
+  border:none;
+
+  border-radius:14px;
+
+  padding:10px 16px;
+
+  font-weight:700;
+
+  cursor:pointer;
+
+  z-index:2300;
+
+  box-shadow:
+  0 0 20px rgba(0,246,255,.35),
+  0 0 40px rgba(176,108,255,.25);
+
+}
     #menu-container {
       position: fixed;
       top: 40px;
       right: 10px;
-      background: #222a44;
-      border: 1px solid #004466;
-      border-radius: 6px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+     background:
+linear-gradient(
+180deg,
+rgba(10,20,40,.95),
+rgba(20,25,60,.95)
+);
+
+border:1px solid rgba(0,246,255,.25);
+
+border-radius:18px;
+
+box-shadow:
+0 0 25px rgba(0,246,255,.15),
+0 0 50px rgba(176,108,255,.15);
       display: none;
       z-index: 2300;
       padding: 8px;
@@ -618,40 +661,43 @@ rgba(20,25,60,.95)
     #game-mode-in-register input[type="radio"] { margin-right: 4px; transform: scale(0.8); }
 
     #quiz-flash-container {
-      position: fixed;
-      bottom: 20px;
-      left: 20px;
-      z-index: 100;
-      user-select: none;
-      cursor: default;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      width: max-content;
-      transform: scale(1.5);
-      transform-origin: bottom left;
-    }
-    .quiz-flash {
-      animation: quiz-flash 2.5s infinite ease-in-out;
-      font-weight: 900;
-      font-size: 2rem;
-      font-family: 'Arial Black', Arial, sans-serif;
-      color: #22cc88;
-      text-shadow: 0 0 8px #22cc88, 0 0 20px #22cc88;
-      margin-bottom: 10px;
-    }
-    #quiz-flash-image {
-      position: fixed;
-      bottom: calc(20px + 2rem * 1.5 + 10px);
-      left: 20px;
-      z-index: 100;
-      max-width: 180px;
-      width: auto;
-      height: auto;
-      filter: drop-shadow(0 0 4px #22cc88);
-      user-select: none;
-      cursor: default;
-    }
+  position: fixed;
+  bottom: 90px;
+  left: 24px;
+  z-index: 90;
+  user-select: none;
+  pointer-events: none;
+}
+   .quiz-flash {
+
+  animation: quiz-flash 2.5s infinite ease-in-out;
+
+  font-weight: 900;
+
+  font-size: 0.9rem;
+
+  font-family: Arial, sans-serif;
+
+  color: #ffffff;
+
+  text-align: center;
+
+  margin-bottom: 10px;
+
+  text-shadow:
+    0 0 8px #00f6ff,
+    0 0 15px #b06cff;
+    width:140px;
+text-align:center;
+
+}
+   #quiz-flash-image {
+  width: 120px;
+  height: auto;
+  filter:
+    drop-shadow(0 0 15px rgba(0,246,255,.45))
+    drop-shadow(0 0 35px rgba(176,108,255,.30));
+}
     @keyframes quiz-flash {
       0%, 100% {
         color: #22cc88;
@@ -704,13 +750,10 @@ rgba(20,25,60,.95)
 
 <div class="hero-box">
 
-  <div class="hero-logo">
-    🇮🇹
-  </div>
 
-  <div class="hero-title">
-    Benvenuto in Italia Quest
-  </div>
+<div class="hero-title">
+  🌍 Inizia la tua Avventura
+</div>
 
   <div class="hero-text">
     Quiz, Cultura, Musica, Arte, Tradizioni,
@@ -724,7 +767,9 @@ rgba(20,25,60,.95)
 
 <button id="toggle-players-btn">Mostra Giocatori</button>
 
-<button id="menu-toggle-btn">Menu</button>
+<button id="menu-toggle-btn">
+⚙️ Italia Quest
+</button>
 <div id="menu-container">
   <button id="manage-questions-btn" title="Gestisci domande quiz">Gestisci Domande</button>
   <button id="manage-images-btn" title="Gestisci immagini regioni">Gestisci Immagini</button>
@@ -920,10 +965,14 @@ rgba(20,25,60,.95)
 <div id="generic-modal-container" style="display:none;"></div>
 
 <div id="quiz-flash-container">
-  <div class="quiz-flash">Pronto per il Quiz?</div>
-  <img id="quiz-flash-image"
-       src="https://i.postimg.cc/qRr67dMT/63baeef3-5306-4d77-9e38-1195f592ecab-trasparente.png"
-       alt="Decorazione Quiz" />
+ <div class="quiz-flash">
+🏆 Italia Quest Community
+</div>
+<img
+  id="quiz-flash-image"
+  src="assents/img/italia-quest-logo.png"
+  alt="Italia Quest"
+/>
 </div>
 
 <div id="real-time-clock" aria-label="Orologio in tempo reale"></div>
