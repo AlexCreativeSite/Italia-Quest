@@ -439,7 +439,66 @@ function openQuestionBankModal() {
           `)
           .join("")}
       </select>
+<div style="border:1px solid #00aaff;padding:10px;border-radius:10px;background:#071a33;">
+  <b>🧩 Generatore Domanda</b><br><br>
 
+  <select id="qb-gen-category" style="width:100%;padding:8px;">
+    <option value="cucina">🍝 Cucina</option>
+    <option value="storia">🏰 Storia</option>
+    <option value="musica">🎵 Musica</option>
+    <option value="arte">🎨 Arte</option>
+    <option value="sport">⚽ Sport</option>
+    <option value="curiosita">✨ Curiosità</option>
+    <option value="personaggi">👑 Personaggi</option>
+    <option value="tradizioni">🏞️ Tradizioni</option>
+  </select>
+
+  <textarea id="qb-gen-question" placeholder="Domanda..." rows="3" style="width:100%;margin-top:6px;"></textarea>
+
+  <input id="qb-gen-a1" placeholder="Risposta 1" style="width:100%;margin-top:6px;">
+  <input id="qb-gen-a2" placeholder="Risposta 2" style="width:100%;margin-top:6px;">
+  <input id="qb-gen-a3" placeholder="Risposta 3" style="width:100%;margin-top:6px;">
+  <input id="qb-gen-a4" placeholder="Risposta 4" style="width:100%;margin-top:6px;">
+
+  <select id="qb-gen-correct" style="width:100%;margin-top:6px;padding:8px;">
+    <option value="0">Corretta: Risposta 1</option>
+    <option value="1">Corretta: Risposta 2</option>
+    <option value="2">Corretta: Risposta 3</option>
+    <option value="3">Corretta: Risposta 4</option>
+  </select>
+
+  <button id="qb-gen-add" style="width:100%;margin-top:8px;">
+    ➕ Crea e aggiungi alla regione selezionata
+  </button>
+</div>
+<div style="
+  border:1px solid #ffaa00;
+  padding:10px;
+  border-radius:10px;
+  background:#2b1f05;
+  margin-top:10px;
+">
+
+  <b>📄 Importa PDF Regione</b><br><br>
+
+  <input
+    id="qb-pdf-file"
+    type="file"
+    accept="application/pdf"
+    style="width:100%;"
+  >
+
+  <button
+    id="qb-import-pdf-btn"
+    style="
+      width:100%;
+      margin-top:8px;
+    "
+  >
+    📄 Importa domande dal PDF
+  </button>
+
+</div>
       <label>
         Domande da aggiungere (JSON)
       </label>
@@ -573,6 +632,20 @@ const dashboardBtn =
 
 const clearLocalBtn =
   wrapper.querySelector("#qb-clear-local-btn");
+const genCategory = wrapper.querySelector("#qb-gen-category");
+const genQuestion = wrapper.querySelector("#qb-gen-question");
+const genA1 = wrapper.querySelector("#qb-gen-a1");
+const genA2 = wrapper.querySelector("#qb-gen-a2");
+const genA3 = wrapper.querySelector("#qb-gen-a3");
+const genA4 = wrapper.querySelector("#qb-gen-a4");
+const genCorrect = wrapper.querySelector("#qb-gen-correct");
+const genAddBtn = wrapper.querySelector("#qb-gen-add");
+
+const pdfFileInput =
+  wrapper.querySelector("#qb-pdf-file");
+
+const importPdfBtn =
+  wrapper.querySelector("#qb-import-pdf-btn");
 
   function buildDashboard() {
 
@@ -1011,6 +1084,121 @@ searchInput.addEventListener(
 
   refreshInfo();
 
+importPdfBtn.addEventListener("click", async () => {
+
+  const code =
+    regionSelect.value;
+
+  const file =
+    pdfFileInput.files?.[0];
+
+  if (!file) {
+    await showAlert(
+      "Seleziona prima un file PDF."
+    );
+    return;
+  }
+
+  try {
+
+    const text =
+      await extractTextFromPdfFile(file);
+
+    const questions =
+      parsePremiumPdfQuestions(text);
+
+    if (!questions.length) {
+      await showAlert(
+        "Non ho trovato domande nel PDF."
+      );
+      return;
+    }
+
+    if (!questionBank[code]) {
+      questionBank[code] = {
+        region:
+          quizData[code]?.region || code,
+        questions: []
+      };
+    }
+
+    questionBank[code].questions.push(
+      ...questions
+    );
+
+    saveQuestionBankLocal();
+    await saveQuestionBankFirebase();
+
+    refreshInfo();
+
+    await showAlert(
+      `${questions.length} domande importate dal PDF ✅`
+    );
+
+  } catch (err) {
+
+    console.error(
+      "Errore import PDF:",
+      err
+    );
+
+    await showAlert(
+      "Errore durante la lettura del PDF."
+    );
+
+  }
+
+});
+
+  genAddBtn.addEventListener("click", async () => {
+
+  const code = regionSelect.value;
+
+  const q = {
+    category: genCategory.value,
+    question: genQuestion.value.trim(),
+    answers: [
+      genA1.value.trim(),
+      genA2.value.trim(),
+      genA3.value.trim(),
+      genA4.value.trim()
+    ],
+    correct: Number(genCorrect.value)
+  };
+
+  if (
+    !q.question ||
+    q.answers.some(a => !a)
+  ) {
+    await showAlert("Compila domanda e tutte e 4 le risposte.");
+    return;
+  }
+
+  if (!questionBank[code]) {
+    questionBank[code] = {
+      region: quizData[code]?.region || code,
+      questions: []
+    };
+  }
+
+  questionBank[code].questions.push(q);
+
+  saveQuestionBankLocal();
+  await saveQuestionBankFirebase();
+
+  genQuestion.value = "";
+  genA1.value = "";
+  genA2.value = "";
+  genA3.value = "";
+  genA4.value = "";
+  genCorrect.value = "0";
+
+  refreshInfo();
+
+  await showAlert("Domanda creata e salvata ✅");
+
+});
+
 dashboardBtn.addEventListener(
   "click",
   () => {
@@ -1390,6 +1578,108 @@ async function saveQuestionBankFirebase() {
   }
 
 }
+
+async function extractTextFromPdfFile(file) {
+
+  const buffer =
+    await file.arrayBuffer();
+
+  const pdf =
+    await pdfjsLib.getDocument({
+      data: buffer
+    }).promise;
+
+  let fullText = "";
+
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+
+    const page =
+      await pdf.getPage(pageNum);
+
+    const content =
+      await page.getTextContent();
+
+    const text =
+      content.items
+        .map(item => item.str)
+        .join(" ");
+
+    fullText += "\n" + text;
+
+  }
+
+  return fullText;
+
+}
+
+
+function mapPdfCategory(raw) {
+
+  const text =
+    String(raw || "")
+      .trim()
+      .toLowerCase();
+
+  const map = {
+    geografia: "curiosita",
+    storia: "storia",
+    monumenti: "arte",
+    cultura: "arte",
+    cinema: "arte",
+    musica: "musica",
+    sport: "sport",
+    gastronomia: "cucina",
+    cucina: "cucina",
+    natura: "curiosita",
+    montagna: "curiosita",
+    tradizioni: "tradizioni",
+    curiosità: "curiosita",
+    curiosita: "curiosita"
+  };
+
+  return map[text] || "curiosita";
+
+}
+
+function parsePremiumPdfQuestions(text) {
+
+  const clean =
+    String(text || "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const regex =
+    /(\d+)\s*-\s*([A-Za-zÀ-ÿ\s]+)\s+Domanda:\s*(.*?)\s+Risposta 1:\s*(.*?)\s+Risposta 2:\s*(.*?)\s+Risposta 3:\s*(.*?)\s+Risposta 4:\s*(.*?)\s+Corretta:\s*Risposta\s*(\d+)/g;
+
+  const out = [];
+  let match;
+
+  while ((match = regex.exec(clean)) !== null) {
+
+    out.push({
+      category: mapPdfCategory(match[2]),
+      question: match[3].trim(),
+      answers: [
+        match[4].trim(),
+        match[5].trim(),
+        match[6].trim(),
+        match[7].trim()
+      ],
+      correct: Math.max(
+        0,
+        Math.min(
+          3,
+          Number(match[8]) - 1
+        )
+      )
+    });
+
+  }
+
+  return out;
+
+}
+
 function getBankQuestionsForRegion(regionCode) {
 
   const entry =
@@ -1919,10 +2209,15 @@ async function nextBtnHandler() {
 }
 
 async function startQuizForRegion(regionCode, regionName) {
-  if (!adminOnline) {
-    await showAlert("Gioco non attivo: attendi che l'admin avvii la sessione.");
-    return;
-  }
+const alreadyDone =
+  !!MP.state?.completedRegions?.[regionCode];
+
+if (alreadyDone) {
+  await showAlert(
+    "Questa regione è già stata completata. Completa tutta la mappa o avvia una nuova partita."
+  );
+  return;
+}
 
   if (!turnOrder || turnOrder.length === 0) {
     await showAlert("Seleziona almeno un giocatore.");
@@ -1987,7 +2282,6 @@ userAnswers = new Array(currentQuizQuestions.length).fill(null);
    PACCHI
 ========================= */
 async function showPaccoModal(regionCode, regionName) {
-  if (!adminOnline) { await showAlert("Gioco non attivo: attendi che l'admin avvii la sessione."); return; }
   if (!turnOrder || turnOrder.length === 0) { await showAlert("Seleziona almeno un giocatore."); return; }
 
   const uid = getCurrentTurnUid();
@@ -3308,16 +3602,15 @@ if (svg) {
       const regionName = group.dataset.regionName;
       if (!regionCode) return;
 
-      if (!adminOnline) {
-        await showAlert("Gioco non attivo: attendi che l'admin avvii la sessione.");
-        return;
-      }
+     const alreadyDone =
+  !!MP.state?.completedRegions?.[regionCode];
 
-      const alreadyDone = !!MP.state?.completedRegions?.[regionCode];
-      if (alreadyDone) {
-        await toggleRegionCompleted(regionCode);
-        return;
-      }
+if (alreadyDone) {
+  await showAlert(
+    "Questa regione è già stata completata. Completa tutta la mappa o avvia una nuova partita."
+  );
+  return;
+}
 
       if (gameMode === "quiz") await startQuizForRegion(regionCode, regionName);
       else await startPacchiForRegion(regionCode, regionName);
