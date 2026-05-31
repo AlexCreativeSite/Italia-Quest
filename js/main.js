@@ -187,6 +187,10 @@ const menuContainer = document.getElementById("menu-container");
 const manageQuestionsBtn = document.getElementById("manage-questions-btn");
 const manageImagesBtn = document.getElementById("manage-images-btn");
 const externalManageBtn = document.getElementById("external-manage-btn");
+
+const questionBankBtn =
+  document.getElementById("question-bank-btn");
+
 const manageNumbersBtn = document.getElementById("manage-numbers-btn");
 const managePacchiBtn = document.getElementById("manage-pacchi-btn");
 const archiveEventsBtn = document.getElementById("archive-events-btn");
