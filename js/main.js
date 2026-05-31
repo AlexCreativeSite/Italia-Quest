@@ -245,6 +245,7 @@ function showAlert(message) {
   });
 }
 
+
 function showConfirm(message) {
   return new Promise((resolve) => {
     const overlay = document.createElement("div");
@@ -377,6 +378,628 @@ function openPanelModal({ title, width = 860, content }) {
 
   return { close: cleanup, box, overlay };
 }
+function openQuestionBankModal() {
+
+  const wrapper = document.createElement("div");
+
+  wrapper.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px;">
+
+      <label>
+        Regione
+      </label>
+
+
+      <label>
+  Categoria
+</label>
+
+<select id="qb-category-filter"
+        style="
+          padding:8px;
+          border-radius:6px;
+        ">
+  <option value="all">Tutte</option>
+  <option value="cucina">🍝 Cucina</option>
+  <option value="storia">🏰 Storia</option>
+  <option value="musica">🎵 Musica</option>
+  <option value="arte">🎨 Arte</option>
+  <option value="sport">⚽ Sport</option>
+  <option value="curiosita">✨ Curiosità</option>
+  <option value="personaggi">👑 Personaggi</option>
+  <option value="tradizioni">🏞️ Tradizioni</option>
+
+ 
+</select>
+ <label>
+  Cerca
+</label>
+
+<input
+  id="qb-search"
+  type="text"
+  placeholder="Cerca una parola..."
+  style="
+    padding:8px;
+    border-radius:6px;
+    width:100%;
+    box-sizing:border-box;
+  "
+>
+
+      <select id="qb-region" style="
+        padding:8px;
+        border-radius:6px;
+      ">
+        ${regionList()
+          .map(code => `
+            <option value="${code}">
+              ${quizData[code]?.region || code}
+            </option>
+          `)
+          .join("")}
+      </select>
+
+      <label>
+        Domande da aggiungere (JSON)
+      </label>
+
+      <textarea
+        id="qb-json"
+        rows="14"
+        style="
+          width:100%;
+          resize:vertical;
+          font-family:monospace;
+        "
+      ></textarea>
+
+      <div id="qb-info"
+           style="
+             font-weight:bold;
+             color:#22cc88;
+           ">
+      </div>
+
+      <div id="qb-list"
+     style="
+       margin-top:10px;
+       max-height:180px;
+       overflow:auto;
+       border:1px solid #004466;
+       border-radius:8px;
+       padding:8px;
+       background:#112244;
+       color:#aad4ff;
+     ">
+</div>
+
+<div style="display:flex;gap:8px;flex-wrap:wrap;">
+
+<button id="qb-add-btn" style="flex:1;">
+  ➕ Aggiungi all'Archivio
+</button>
+
+<button id="qb-update-btn" style="flex:1;">
+  ✏️ Aggiorna Domanda
+</button>
+
+<button id="qb-import-btn" style="flex:1;">
+  📥 Importa Archivio
+</button>
+
+<button id="qb-export-btn" style="flex:1;">
+  💾 Esporta Archivio
+</button>
+<button id="qb-clear-local-btn" style="flex:1;background:#8844ff;color:white;">
+  🧹 Cancella Locale
+</button>
+</div>
+
+</div>
+`;
+
+  const modal = openPanelModal({
+    title: "📚 Archivio Italia Quest",
+    width: 900,
+    content: wrapper
+  });
+
+  const regionSelect =
+  wrapper.querySelector("#qb-region");
+
+  const categoryFilter =
+  wrapper.querySelector(
+    "#qb-category-filter"
+  );
+
+const searchInput =
+  wrapper.querySelector(
+    "#qb-search"
+  );
+
+const textarea =
+  wrapper.querySelector("#qb-json");
+
+const info =
+  wrapper.querySelector("#qb-info");
+
+const list =
+  wrapper.querySelector("#qb-list");
+
+let editingIndex = -1;
+
+  const stats =
+  document.createElement("div");
+
+stats.style.marginTop = "8px";
+stats.style.fontSize = "0.9rem";
+stats.style.color = "#aad4ff";
+
+const categoryStats =
+  document.createElement("div");
+
+categoryStats.style.marginTop = "8px";
+categoryStats.style.fontSize = "0.9rem";
+categoryStats.style.color = "#ffd280";
+
+info.parentNode.insertBefore(
+  stats,
+  info.nextSibling
+);
+
+info.parentNode.insertBefore(
+  categoryStats,
+  stats.nextSibling
+);
+
+const addBtn =
+  wrapper.querySelector("#qb-add-btn");
+
+const updateBtn =
+  wrapper.querySelector("#qb-update-btn");
+
+const importBtn =
+  wrapper.querySelector("#qb-import-btn");
+
+const exportBtn =
+  wrapper.querySelector("#qb-export-btn");
+
+const clearLocalBtn =
+  wrapper.querySelector("#qb-clear-local-btn");
+
+function refreshInfo() {
+  const code = regionSelect.value;
+
+  const count =
+    questionBank?.[code]?.questions?.length || 0;
+
+  info.textContent =
+    `Domande archiviate: ${count}`;
+
+  let total = 0;
+
+  const categoryCount = {
+  cucina: 0,
+  storia: 0,
+  musica: 0,
+  arte: 0,
+  sport: 0,
+  curiosita: 0,
+  personaggi: 0,
+  tradizioni: 0
+};
+
+  Object.values(questionBank || {})
+  .forEach(region => {
+
+    const qs =
+      region?.questions || [];
+
+    total += qs.length;
+
+    qs.forEach(q => {
+
+      const cat =
+        q.category || "curiosita";
+
+      if (categoryCount[cat] !== undefined) {
+        categoryCount[cat]++;
+      }
+
+    });
+
+  });
+
+  stats.innerHTML =
+    `<strong>📊 Totale archivio:</strong> ${total}`;
+
+categoryStats.innerHTML = `
+<b>📚 Categorie</b><br>
+🍝 Cucina: ${categoryCount.cucina}<br>
+🏰 Storia: ${categoryCount.storia}<br>
+🎵 Musica: ${categoryCount.musica}<br>
+🎨 Arte: ${categoryCount.arte}<br>
+⚽ Sport: ${categoryCount.sport}<br>
+✨ Curiosità: ${categoryCount.curiosita}<br>
+👑 Personaggi: ${categoryCount.personaggi}<br>
+🏞️ Tradizioni: ${categoryCount.tradizioni}
+`;
+
+
+ const allQuestions =
+  questionBank?.[code]?.questions || [];
+
+const selectedCategory =
+  categoryFilter.value;
+const searchText =
+  searchInput.value
+    .trim()
+    .toLowerCase();
+
+
+const questions =
+  allQuestions
+    .map((q, originalIndex) => ({
+      ...q,
+      originalIndex
+    }))
+    .filter(q => {
+
+      const categoryOk =
+        selectedCategory === "all"
+        || (q.category || "curiosita")
+           === selectedCategory;
+
+      const searchOk =
+        !searchText
+        || String(q.question || "")
+             .toLowerCase()
+             .includes(searchText);
+
+      return categoryOk && searchOk;
+
+    });
+
+  
+
+  if (!questions.length) {
+
+  list.innerHTML =
+    "<i>Nessuna domanda archivata.</i>";
+
+  stats.innerHTML =
+    `<strong>📊 Totale archivio:</strong> ${total}`;
+
+  categoryStats.innerHTML = `
+<b>📚 Categorie</b><br>
+🍝 Cucina: ${categoryCount.cucina}<br>
+🏰 Storia: ${categoryCount.storia}<br>
+🎵 Musica: ${categoryCount.musica}<br>
+🎨 Arte: ${categoryCount.arte}<br>
+⚽ Sport: ${categoryCount.sport}<br>
+✨ Curiosità: ${categoryCount.curiosita}<br>
+👑 Personaggi: ${categoryCount.personaggi}<br>
+🏞️ Tradizioni: ${categoryCount.tradizioni}
+`;
+
+  return;
+}
+
+  function getCategoryBadge(category) {
+
+  const badges = {
+    cucina: "🍝 CUCINA",
+    storia: "🏰 STORIA",
+    musica: "🎵 MUSICA",
+    arte: "🎨 ARTE",
+    sport: "⚽ SPORT",
+    curiosita: "✨ CURIOSITÀ",
+    personaggi: "👑 PERSONAGGI",
+    tradizioni: "🏞️ TRADIZIONI"
+  };
+
+  return badges[category] || "📚 GENERALE";
+}
+
+list.innerHTML =
+  "<b>📋 Domande della regione</b><br><br>" +
+
+  questions.map((q, i) => `
+      <div style="
+        display:flex;
+        align-items:center;
+        gap:8px;
+        margin-bottom:6px;
+      ">
+        <button
+          class="qb-delete"
+          data-index="${i}"
+          style="
+            background:#d33;
+            color:white;
+            border:none;
+            border-radius:6px;
+            cursor:pointer;
+            padding:2px 8px;
+          "
+        >
+          🗑️
+        </button>
+
+        <span
+          class="qb-edit"
+          data-index="${i}"
+          style="
+            cursor:pointer;
+            flex:1;
+          "
+        >
+          <div style="
+  color:#ffd280;
+  font-size:0.8rem;
+  margin-bottom:4px;
+  font-weight:bold;
+">
+  ${getCategoryBadge(q.category)}
+</div>
+
+<div>
+  ${i + 1}. ${q.question}
+</div>
+        </span>
+      </div>
+    `).join("");
+
+  list.querySelectorAll(".qb-delete")
+    .forEach(btn => {
+      btn.addEventListener("click", async () => {
+       const viewIndex = Number(btn.dataset.index);
+const realIndex = questions[viewIndex].originalIndex;
+
+questionBank[code].questions.splice(realIndex, 1);
+saveQuestionBankLocal();
+        refreshInfo();
+      });
+    });
+
+  list.querySelectorAll(".qb-edit")
+    .forEach(span => {
+      span.addEventListener("click", () => {
+     const viewIndex = Number(span.dataset.index);
+const realIndex = questions[viewIndex].originalIndex;
+
+const q =
+  questionBank[code].questions[realIndex];
+
+editingIndex = realIndex;
+
+const editableQuestion = {
+  category: q.category || "curiosita",
+  question: q.question,
+  answers: q.answers,
+  correct: q.correct
+};
+
+textarea.value =
+  JSON.stringify([editableQuestion], null, 2);
+      });
+    });
+}
+  
+  regionSelect.addEventListener(
+    "change",
+    refreshInfo
+  );
+
+  categoryFilter.addEventListener(
+  "change",
+  refreshInfo
+);
+
+searchInput.addEventListener(
+  "input",
+  refreshInfo
+);
+
+  refreshInfo();
+
+updateBtn.addEventListener("click", async () => {
+  const code = regionSelect.value;
+
+  if (editingIndex < 0) {
+    await showAlert("Clicca prima una domanda dalla lista.");
+    return;
+  }
+
+  let data;
+
+  try {
+    data = JSON.parse(textarea.value);
+  } catch {
+    await showAlert("JSON non valido.");
+    return;
+  }
+
+  if (!Array.isArray(data) || data.length !== 1) {
+    await showAlert("Per aggiornare devi avere una sola domanda nel JSON.");
+    return;
+  }
+
+  const q = data[0];
+
+  if (
+    !q ||
+    typeof q.question !== "string" ||
+    !Array.isArray(q.answers) ||
+    q.answers.length !== 4 ||
+    Number(q.correct) < 0 ||
+    Number(q.correct) > 3
+  ) {
+    await showAlert("Formato domanda non valido.");
+    return;
+  }
+q.category =
+  q.category || "curiosita";
+  questionBank[code].questions[editingIndex] = q;
+saveQuestionBankLocal();
+  editingIndex = -1;
+  textarea.value = "";
+
+  refreshInfo();
+
+  await showAlert("Domanda aggiornata ✅");
+});
+
+  addBtn.addEventListener(
+    "click",
+    async () => {
+
+      const code =
+        regionSelect.value;
+
+      let data;
+
+      try {
+
+        data =
+          JSON.parse(
+            textarea.value
+          );
+
+      } catch {
+
+        await showAlert(
+          "JSON non valido."
+        );
+
+        return;
+      }
+
+      if (!Array.isArray(data)) {
+
+        await showAlert(
+          "Devi incollare un array di domande."
+        );
+
+        return;
+      }
+
+      if (!questionBank[code]) {
+
+        questionBank[code] = {
+          region:
+            quizData[code]?.region || code,
+          questions: []
+        };
+      }
+
+      const normalizedData =
+  data.map(q => ({
+    category: q.category || "curiosita",
+    question: q.question,
+    answers: q.answers,
+    correct: q.correct
+  }));
+
+questionBank[code].questions.push(
+  ...normalizedData
+);
+saveQuestionBankLocal();
+      refreshInfo();
+
+      textarea.value = "";
+
+      await showAlert(
+        `${data.length} domande aggiunte all'archivio.`
+      );
+       }
+  );
+
+  importBtn.addEventListener("click", async () => {
+
+  const json =
+    textarea.value.trim();
+
+  if (!json) {
+
+    await showAlert(
+      "Incolla prima il JSON esportato."
+    );
+
+    return;
+  }
+
+  try {
+
+    const imported =
+      JSON.parse(json);
+
+    questionBank =
+  imported;
+
+saveQuestionBankLocal();
+
+refreshInfo();
+
+    await showAlert(
+      "Archivio importato ✅"
+    );
+
+  } catch {
+
+    await showAlert(
+      "JSON non valido."
+    );
+
+  }
+
+});
+  exportBtn.addEventListener("click", async () => {
+    const json = JSON.stringify(questionBank, null, 2);
+
+    const blob = new Blob([json], {
+      type: "application/json"
+    });
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "question-bank.json";
+
+    document.body.appendChild(a);
+    a.click();
+
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    await showAlert("Archivio esportato ✅");
+  });
+  clearLocalBtn.addEventListener("click", async () => {
+
+  const ok = await showConfirm(
+    "Vuoi cancellare l'archivio locale salvato nel browser?"
+  );
+
+  if (!ok) {
+    return;
+  }
+
+  localStorage.removeItem(
+    "italiaquest_question_bank"
+  );
+
+  await loadQuestionBank();
+
+  refreshInfo();
+
+  await showAlert(
+    "Archivio locale cancellato ✅"
+  );
+
+});
+}
 
 function el(tag, props = {}, children = []) {
   const n = document.createElement(tag);
@@ -426,6 +1049,10 @@ async function ensureAdminOrAsk() {
   return true;
 }
 async function loadQuestionBank() {
+
+  if (loadQuestionBankLocal()) {
+    return;
+  }
   try {
     const res = await fetch("./data/question-bank.json", {
       cache: "no-store"
@@ -453,6 +1080,60 @@ async function loadQuestionBank() {
   }
 }
 
+function saveQuestionBankLocal() {
+
+  try {
+
+    localStorage.setItem(
+      "italiaquest_question_bank",
+      JSON.stringify(questionBank)
+    );
+
+  } catch (err) {
+
+    console.error(
+      "Errore salvataggio archivio:",
+      err
+    );
+
+  }
+
+}
+
+function loadQuestionBankLocal() {
+
+  try {
+
+    const saved =
+      localStorage.getItem(
+        "italiaquest_question_bank"
+      );
+
+    if (!saved) {
+      return false;
+    }
+
+    questionBank =
+      JSON.parse(saved);
+
+    console.log(
+      "💾 Archivio caricato da localStorage"
+    );
+
+    return true;
+
+  } catch (err) {
+
+    console.error(
+      "Errore caricamento archivio:",
+      err
+    );
+
+    return false;
+
+  }
+
+}
 function getBankQuestionsForRegion(regionCode) {
 
   const entry =
@@ -2220,7 +2901,18 @@ documentsBtn?.addEventListener("click", async () => {
   if (!(await ensureAdminOrAsk())) return;
   openDocumentsModal();
 });
+questionBankBtn?.addEventListener("click", async () => {
 
+  closeMenu();
+
+  const ok =
+    await ensureAdminOrAsk();
+
+  if (!ok) return;
+
+  openQuestionBankModal();
+
+});
 /* =========================
    Events wiring base
 ========================= */
