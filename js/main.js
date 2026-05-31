@@ -1589,9 +1589,17 @@ regionNumbers = state.regionNumbers || regionNumbers;
 pacchiData = state.pacchiData || pacchiData;
 
 if (state.questionBank) {
+
+  console.log(
+    "☁️ QuestionBank ricevuto da Firebase",
+    state.questionBank
+  );
+
   questionBank = state.questionBank;
   saveQuestionBankLocal();
+
 }
+
   gameMode = state.gameMode || "quiz";
   quizTimeLimit = Number(state.quizTimeLimit || 15);
 
