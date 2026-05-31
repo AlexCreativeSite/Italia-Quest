@@ -491,6 +491,9 @@ function openQuestionBankModal() {
 <button id="qb-export-btn" style="flex:1;">
   💾 Esporta Archivio
 </button>
+<button id="qb-dashboard-btn" style="flex:1;">
+  📊 Dashboard
+</button>
 <button id="qb-clear-local-btn" style="flex:1;background:#8844ff;color:white;">
   🧹 Cancella Locale
 </button>
@@ -565,10 +568,213 @@ const importBtn =
 const exportBtn =
   wrapper.querySelector("#qb-export-btn");
 
+const dashboardBtn =
+  wrapper.querySelector("#qb-dashboard-btn");
+
 const clearLocalBtn =
   wrapper.querySelector("#qb-clear-local-btn");
 
+  function buildDashboard() {
+
+  let html = "";
+  const nationalTotal =
+  Object.values(questionBank || {})
+    .reduce((sum, region) => {
+      return sum + (region?.questions || []).length;
+    }, 0);
+const nationalCategories = {
+  cucina: 0,
+  storia: 0,
+  musica: 0,
+  arte: 0,
+  sport: 0,
+  curiosita: 0,
+  personaggi: 0,
+  tradizioni: 0
+};
+
+Object.values(questionBank || {})
+  .forEach(region => {
+
+    (region?.questions || [])
+      .forEach(q => {
+
+        const cat =
+          q.category || "curiosita";
+
+        if (
+          nationalCategories[cat] !==
+          undefined
+        ) {
+          nationalCategories[cat]++;
+        }
+
+      });
+
+  });
+const completedRegionsCount =
+  Object.values(questionBank || {})
+    .filter(region => {
+      return (region?.questions || []).length >= 50;
+    }).length;
+
+html += `
+  <div style="
+    border:1px solid #00aaff;
+    padding:10px;
+    margin:6px 0 12px;
+    border-radius:10px;
+    background:#071a33;
+    color:#aad4ff;
+    box-shadow:0 0 12px rgba(0,170,255,.35);
+  ">
+    <b>🇮🇹 Riepilogo Nazionale</b><br>
+    📚 Totale domande Italia: ${nationalTotal}<br>
+    🏁 Regioni complete: ${completedRegionsCount}/20<br>
+    🎯 Obiettivo: 50 domande per regione
+    <hr style="
+border:none;
+border-top:1px solid #335577;
+margin:8px 0;
+">
+
+🍝 Cucina:
+${nationalCategories.cucina}<br>
+
+🏰 Storia:
+${nationalCategories.storia}<br>
+
+🎵 Musica:
+${nationalCategories.musica}<br>
+
+🎨 Arte:
+${nationalCategories.arte}<br>
+
+⚽ Sport:
+${nationalCategories.sport}<br>
+
+✨ Curiosità:
+${nationalCategories.curiosita}<br>
+
+👑 Personaggi:
+${nationalCategories.personaggi}<br>
+
+🏞️ Tradizioni:
+${nationalCategories.tradizioni}
+  </div>
+`;
+
+
+
+  const regions =
+  Object.entries(questionBank || {})
+    .sort((a, b) => {
+
+      const countA =
+        (a[1]?.questions || []).length;
+
+      const countB =
+        (b[1]?.questions || []).length;
+
+      return countB - countA;
+
+    });
+
+regions.forEach(([code, region], index) => {
+      const qs =
+        region?.questions || [];
+const target = 50;
+
+const percent =
+  Math.min(
+    100,
+    Math.round(
+      (qs.length / target) * 100
+    )
+  );
+      const counts = {
+        cucina: 0,
+        storia: 0,
+        musica: 0,
+        arte: 0,
+        sport: 0,
+        curiosita: 0,
+        personaggi: 0,
+        tradizioni: 0
+      };
+
+      qs.forEach(q => {
+
+        const cat =
+          q.category || "curiosita";
+
+        if (counts[cat] !== undefined) {
+          counts[cat]++;
+        }
+
+      });
+       const medal =
+  index === 0 ? "🥇" :
+  index === 1 ? "🥈" :
+  index === 2 ? "🥉" :
+  "📍";
+      html += `
+        <div style="
+          border:1px solid #335577;
+          padding:8px;
+          margin:6px 0;
+          border-radius:8px;
+          background:#112244;
+        ">
+          <b>${medal} ${region.region}</b><br>
+
+          📚 Totale:
+          ${qs.length}<br>
+          <div style="
+  width:100%;
+  height:12px;
+  background:#091426;
+  border-radius:8px;
+  overflow:hidden;
+  margin:6px 0;
+">
+
+  <div style="
+    width:${percent}%;
+    height:100%;
+    background:
+      linear-gradient(
+        90deg,
+        #22cc88,
+        #00aaff
+      );
+  ">
+  </div>
+
+</div>
+
+📈 ${percent}% completata<br>
+
+          🍝 ${counts.cucina}
+          🏰 ${counts.storia}
+          🎵 ${counts.musica}
+          🎨 ${counts.arte}
+          ⚽ ${counts.sport}
+          ✨ ${counts.curiosita}
+        </div>
+      `;
+
+    });
+
+  return html;
+
+}
+
+
 function refreshInfo() {
+
+
+  
   const code = regionSelect.value;
 
   const count =
@@ -759,6 +965,7 @@ const realIndex = questions[viewIndex].originalIndex;
 
 questionBank[code].questions.splice(realIndex, 1);
 saveQuestionBankLocal();
+await saveQuestionBankFirebase();
         refreshInfo();
       });
     });
@@ -804,6 +1011,27 @@ searchInput.addEventListener(
 
   refreshInfo();
 
+dashboardBtn.addEventListener(
+  "click",
+  () => {
+
+    const dash = document.createElement("div");
+
+    dash.innerHTML = buildDashboard();
+
+    dash.style.maxHeight = "65vh";
+    dash.style.overflowY = "auto";
+    dash.style.paddingRight = "8px";
+
+    openPanelModal({
+      title: "📊 Dashboard Regioni",
+      width: 760,
+      content: dash
+    });
+
+  }
+);
+
 updateBtn.addEventListener("click", async () => {
   const code = regionSelect.value;
 
@@ -843,6 +1071,7 @@ q.category =
   q.category || "curiosita";
   questionBank[code].questions[editingIndex] = q;
 saveQuestionBankLocal();
+await saveQuestionBankFirebase();
   editingIndex = -1;
   textarea.value = "";
 
@@ -906,6 +1135,7 @@ questionBank[code].questions.push(
   ...normalizedData
 );
 saveQuestionBankLocal();
+await saveQuestionBankFirebase();
       refreshInfo();
 
       textarea.value = "";
@@ -937,8 +1167,8 @@ saveQuestionBankLocal();
 
     questionBank =
   imported;
-
 saveQuestionBankLocal();
+await saveQuestionBankFirebase();
 
 refreshInfo();
 
@@ -992,7 +1222,8 @@ refreshInfo();
 
   await loadQuestionBank();
 
-  refreshInfo();
+ refreshInfo();
+
 
   await showAlert(
     "Archivio locale cancellato ✅"
@@ -1130,6 +1361,31 @@ function loadQuestionBankLocal() {
     );
 
     return false;
+
+  }
+
+}
+async function saveQuestionBankFirebase() {
+
+  try {
+
+    await mpAuthReady();
+
+    await mpWrite(
+      "questionBank",
+      questionBank
+    );
+
+    console.log(
+      "☁️ Archivio salvato su Firebase"
+    );
+
+  } catch (err) {
+
+    console.error(
+      "Errore Firebase archivio:",
+      err
+    );
 
   }
 
@@ -1328,10 +1584,14 @@ function applyRemoteStateToUI(state) {
   if (!state) return;
 
   quizData = state.quizData || quizData;
-  imagesData = state.imagesData || imagesData;
-  regionNumbers = state.regionNumbers || regionNumbers;
-  pacchiData = state.pacchiData || pacchiData;
+imagesData = state.imagesData || imagesData;
+regionNumbers = state.regionNumbers || regionNumbers;
+pacchiData = state.pacchiData || pacchiData;
 
+if (state.questionBank) {
+  questionBank = state.questionBank;
+  saveQuestionBankLocal();
+}
   gameMode = state.gameMode || "quiz";
   quizTimeLimit = Number(state.quizTimeLimit || 15);
 
@@ -2124,7 +2384,12 @@ async function autoUpdateFromWiki({
   }
 
   await mpAuthReady();
-  await mpUpdate("", { quizData, imagesData, pacchiData });
+ await mpUpdate("", {
+  quizData,
+  imagesData,
+  pacchiData,
+  questionBank
+});
 }
 
 /* =========================
