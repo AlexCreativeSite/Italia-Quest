@@ -162,6 +162,9 @@ const playerList = document.getElementById("player-list");
 const selectedPlayersDetails = document.getElementById("selected-players-details");
 const resetSelectionBtn = document.getElementById("reset-selection-btn");
 
+const resetNickBtn =
+  document.getElementById("reset-nick-btn");
+
 const togglePlayersBtn = document.getElementById("toggle-players-btn");
 const playerSelectionDiv = document.getElementById("player-selection");
 
@@ -1456,23 +1459,33 @@ function pickRandomDifferent(arr, exclude, count) {
 }
 
 async function ensureAdminOrAsk() {
+
   if (localAdmin) return true;
 
-  const pwd = await showPrompt(
-    "Inserisci password admin per aprire la gestione:"
-  );
+  const pwd =
+    await showPrompt(
+      "Inserisci password admin per aprire la gestione:"
+    );
 
-  if (pwd === null) return false;
+  if (pwd === null)
+    return false;
 
   if (pwd !== ADMIN_PASSWORD) {
-    await showAlert("Password errata.");
+
+    await showAlert(
+      "Password errata."
+    );
+
     return false;
   }
 
   localAdmin = true;
 
   await mpAuthReady();
-  await mpWrite("adminOnline", true);
+  await mpWrite(
+    "adminOnline",
+    true
+  );
 
   return true;
 }
@@ -2029,9 +2042,43 @@ async function markRegionCompleted(code) {
 }
 
 async function toggleRegionCompleted(code) {
-  const isDone = !!(MP.state?.completedRegions?.[code]);
-  if (isDone) await mpWrite(`completedRegions/${code}`, null);
-  else await mpWrite(`completedRegions/${code}`, true);
+
+  const isDone =
+    !!(MP.state?.completedRegions?.[code]);
+
+  if (isDone) {
+
+    await mpWrite(
+      `completedRegions/${code}`,
+      null
+    );
+
+  } else {
+
+    await mpWrite(
+      `completedRegions/${code}`,
+      true
+    );
+
+    setTimeout(async () => {
+
+      const completed =
+        Object.keys(
+          MP.state?.completedRegions || {}
+        ).length;
+
+      if (completed >= 20) {
+
+        await showAlert(
+          "🎉 ITALIA COMPLETATA! 🏆"
+        );
+
+      }
+
+    }, 500);
+
+  }
+
 }
 /* =========================
    QUIZ UI
@@ -3547,9 +3594,19 @@ if (adminLoginBtn) {
         await showAlert("Password errata. Accesso negato.");
       }
     } else {
-      await mpWrite("adminOnline", false);
-      await showAlert("Logout admin: gioco disattivato.");
-    }
+
+  localAdmin = false;
+
+  await mpWrite(
+    "adminOnline",
+    false
+  );
+
+  await showAlert(
+    "Logout admin effettuato."
+  );
+
+}
   });
 }
 
@@ -3567,13 +3624,46 @@ if (togglePlayersBtn && playerSelectionDiv) {
 
 if (resetSelectionBtn) {
   resetSelectionBtn.addEventListener("click", async () => {
+
     await mpAuthReady();
+
     await mpWrite("selectedPlayers", {});
     await mpWrite("turnOrder", []);
     await mpWrite("currentTurnIndex", 0);
+
+    await mpWrite("completedRegions", {});
+
   });
 }
+if (resetNickBtn) {
 
+  resetNickBtn.addEventListener(
+    "click",
+    async () => {
+
+      const ok =
+        await showConfirm(
+          "Cancellare tutti i nickname registrati?"
+        );
+
+      if (!ok) return;
+
+      await mpAuthReady();
+
+      await mpWrite("participants", {});
+      await mpWrite("selectedPlayers", {});
+      await mpWrite("turnOrder", []);
+      await mpWrite("currentTurnIndex", 0);
+      await mpWrite("completedRegions", {});
+
+      await showAlert(
+        "Nickname eliminati."
+      );
+
+    }
+  );
+
+}
 if (registerForm) {
   registerForm.addEventListener("submit", async (e) => {
     e.preventDefault();
