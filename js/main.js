@@ -1952,7 +1952,16 @@ function renderPlayersMultiplayer(state) {
       const live = MP.state || state;
       const nowSel = { ...(live.selectedPlayers || {}), [uid]: cb.checked };
       const uids = Object.keys(nowSel).filter((id) => nowSel[id]);
+for (let i = uids.length - 1; i > 0; i--) {
 
+  const j =
+    Math.floor(
+      Math.random() * (i + 1)
+    );
+
+  [uids[i], uids[j]] =
+    [uids[j], uids[i]];
+}
       await mpWrite("turnOrder", uids);
       await mpWrite("currentTurnIndex", 0);
     });
