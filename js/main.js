@@ -118,6 +118,7 @@ const MACROAREA = {
    GLOBALS
 ========================= */
 let adminOnline = false;
+let localAdmin = false;
 let gameMode = "quiz";
 let quizTimeLimit = 15;
 
@@ -1455,16 +1456,24 @@ function pickRandomDifferent(arr, exclude, count) {
 }
 
 async function ensureAdminOrAsk() {
-  if (adminOnline) return true;
+  if (localAdmin) return true;
 
-  const pwd = await showPrompt("Inserisci password admin per aprire la gestione:");
+  const pwd = await showPrompt(
+    "Inserisci password admin per aprire la gestione:"
+  );
+
   if (pwd === null) return false;
+
   if (pwd !== ADMIN_PASSWORD) {
     await showAlert("Password errata.");
     return false;
   }
+
+  localAdmin = true;
+
   await mpAuthReady();
   await mpWrite("adminOnline", true);
+
   return true;
 }
 async function loadQuestionBank() {
