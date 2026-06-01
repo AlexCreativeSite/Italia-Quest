@@ -1929,6 +1929,13 @@ function renderPlayersMultiplayer(state) {
   const selObj = state.selectedPlayers || {};
 
   Object.entries(pObj).forEach(([uid, p]) => {
+    if (
+  !p ||
+  !p.isRegistered ||
+  !String(p.nickname || "").trim()
+) {
+  return;
+}
     const li = document.createElement("li");
     li.style.cssText =
       "padding:4px 6px;border-bottom:1px solid #004466;display:flex;align-items:center;justify-content:space-between;";
