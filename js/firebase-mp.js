@@ -185,24 +185,29 @@ async function ensureMeExists() {
   await mpAuthReady();
   if (!MP.uid) return;
 
-  const pRef = roomRef(`participants/${MP.uid}`);
-  const snap = await get(pRef);
+  const pRef =
+    roomRef(`participants/${MP.uid}`);
+
+  const snap =
+    await get(pRef);
 
   if (!snap.exists()) {
     await set(pRef, {
       uid: MP.uid,
-      nickname: "Guest",
+      nickname: "",
       wins: 0,
       losses: 0,
       games: 0,
       score: 0,
       lastSeen: serverTimestamp(),
+      isRegistered: false
     });
   } else {
-    await update(pRef, { lastSeen: serverTimestamp() });
+    await update(pRef, {
+      lastSeen: serverTimestamp()
+    });
   }
 }
-
 /**
  * mpWrite(path, value)
  * - scrive un valore (se value è null -> rimuove chiave)
