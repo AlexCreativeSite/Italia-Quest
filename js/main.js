@@ -1980,9 +1980,13 @@ for (let i = uids.length - 1; i > 0; i--) {
   });
 
   const selectedNames = Object.keys(selObj)
-    .filter((uid) => selObj[uid])
-    .map((uid) => pObj[uid]?.nickname)
-    .filter(Boolean);
+  .filter((uid) =>
+    selObj[uid] &&
+    pObj[uid]?.isRegistered &&
+    String(pObj[uid]?.nickname || "").trim()
+  )
+  .map((uid) => pObj[uid]?.nickname)
+  .filter(Boolean);
 
   if (selectedPlayersDetails) {
     selectedPlayersDetails.innerHTML = selectedNames.length
