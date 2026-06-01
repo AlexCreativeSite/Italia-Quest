@@ -248,10 +248,11 @@ export async function mpAddOrUpdateMe(nickname) {
   if (!MP.uid) throw new Error("uid non pronto");
 
   await update(roomRef(`participants/${MP.uid}`), {
-    uid: MP.uid,
-    nickname: String(nickname).slice(0, 20),
-    lastSeen: serverTimestamp(),
-  });
+  uid: MP.uid,
+  nickname: String(nickname).trim().slice(0, 20),
+  isRegistered: true,
+  lastSeen: serverTimestamp(),
+});
 }
 
 /**
