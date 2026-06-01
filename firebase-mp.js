@@ -1,98 +1,92 @@
-// /ITALIA/firebase-mp.js
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+// /ITALIA/js/firebase-mp.js
+import { db, auth } from "../firebase-mp.js";
+
 import {
-  getDatabase,
   ref,
+  onValue,
+  get,
   set,
   update,
-  get,
-  onValue,
   runTransaction,
+  serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js";
+
 import {
-  getAuth,
   signInAnonymously,
   onAuthStateChanged,
 } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
 
-/* =========================
-   Firebase init
-========================= */
-const firebaseConfig = {
-  apiKey: "AIzaSyC4wjxtURhqn1cfiaEDWXSLrj9-BgwoINs",
-  authDomain: "quiz-regioni.firebaseapp.com",
-  databaseURL: "https://quiz-regioni-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "quiz-regioni",
-  storageBucket: "quiz-regioni.firebasestorage.app",
-  messagingSenderId: "80504945646",
-  appId: "1:80504945646:web:865dac2c7890c3a62b2cff",
-};
-
-export const app = initializeApp(firebaseConfig);
-export const db = getDatabase(app);
-export const auth = getAuth(app);
-
-/* =========================
-   Room + state container
-========================= */
+/**
+ * MP = stato multiplayer condiviso
+ * roomId = stanza
+ * uid = utente corrente
+ * state = snapshot corrente
+ */
 export const MP = {
   roomId: null,
   uid: null,
   state: null,
-  basePath: null,
 };
 
+let _signInPromise = null;
+let _authReadyPromise = null;
+
 /* =========================
-   Helpers
+   Utils
 ========================= */
-function randomRoomId(len = 10) {
-  const chars = "abcdef0123456789";
-  let out = "";
-  for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
-  return out;
+function qs(name) {
+  const u = new URL(location.href);
+  return (u.searchParams.get(name) || "").trim();
 }
 
-function getRoomIdFromHashOrMakeOne() {
+function getRoomIdFromUrl() {
+  const qRoom = qs("room");
+  if (qRoom) return qRoom;
+
   const h = (location.hash || "").replace("#", "").trim();
   if (h) return h;
 
-  // se non c'è hash, creo stanza e la scrivo nell'URL
-  const rid = randomRoomId(10);
-  try {
-    location.hash = rid;
-  } catch {}
-  return rid;
+  return "public";
+}
+
+function setRoomIdInUrl(roomId) {
+  const u = new URL(location.href);
+  u.searchParams.set("room", roomId);
+  history.replaceState({}, "", u.toString());
+}
+
+function makeRoomId() {
+  return (crypto?.randomUUID?.() || String(Math.random()).slice(2))
+    .replace(/-/g, "")
+    .slice(0, 10);
+}
+
+function roomRef(path = "") {
+  if (!MP.roomId) throw new Error("MP.roomId non impostato");
+  const base = `rooms/${MP.roomId}`;
+  return ref(db, path ? `${base}/${path}` : base);
 }
 
 /* =========================
-   Auth readiness (fix "uid non pronto")
+   ✅ AUTH READY (evita "uid non pronto")
 ========================= */
-let _authReadyPromise = null;
-
 export function mpAuthReady() {
+  // già pronto
+  if (auth.currentUser?.uid) {
+    MP.uid = auth.currentUser.uid;
+    return Promise.resolve(MP.uid);
+  }
+
+  // se già in attesa, riusa
   if (_authReadyPromise) return _authReadyPromise;
 
-  _authReadyPromise = new Promise((resolve, reject) => {
-    // se già loggato
-    if (auth.currentUser?.uid) {
-      MP.uid = auth.currentUser.uid;
-      resolve(MP.uid);
-      return;
-    }
-
-    // ascolta auth
+  _authReadyPromise = new Promise((resolve) => {
     const unsub = onAuthStateChanged(auth, (user) => {
-      if (user?.uid) {
-        MP.uid = user.uid;
-        try { unsub(); } catch {}
-        resolve(MP.uid);
-      }
-    });
-
-    // avvia login anonimo (una sola volta)
-    signInAnonymously(auth).catch((e) => {
+      if (!user) return;
+      MP.uid = user.uid;
       try { unsub(); } catch {}
-      reject(e);
+      resolve(MP.uid);
+      _authReadyPromise = null;
     });
   });
 
@@ -100,114 +94,202 @@ export function mpAuthReady() {
 }
 
 /* =========================
-   Core DB ops
+   Auth anonima "safe"
 ========================= */
-function roomRef(path = "") {
-  if (!MP.basePath) throw new Error("MP non inizializzato: chiama mpInit() prima.");
-  const full = path ? `${MP.basePath}/${path}` : MP.basePath;
-  return ref(db, full);
-}
-
-export async function mpWrite(path, value) {
-  await mpAuthReady();
-  // null => delete node
-  await set(roomRef(path), value === undefined ? null : value);
-}
-
-export async function mpUpdate(path, patchObj) {
-  await mpAuthReady();
-  if (!patchObj || typeof patchObj !== "object") {
-    throw new Error("mpUpdate: patchObj deve essere un oggetto");
+async function ensureAnonymousSignIn() {
+  // se già loggato
+  if (auth.currentUser?.uid) {
+    MP.uid = auth.currentUser.uid;
+    return MP.uid;
   }
-  // update() fa merge, path può essere "" per root stanza
-  const r = roomRef(path);
-  await update(r, patchObj);
+
+  // se un login è già in corso
+  if (_signInPromise) {
+    await _signInPromise;
+    return mpAuthReady();
+  }
+
+  // avvia login
+  _signInPromise = signInAnonymously(auth);
+
+  try {
+    await _signInPromise;
+  } finally {
+    _signInPromise = null;
+  }
+
+  return mpAuthReady();
 }
 
+/* =========================
+   Public API richieste da main.js
+========================= */
+
+/**
+ * mpInit({ defaults, onState })
+ * - determina roomId (da URL ?room=... oppure #... oppure ne crea uno)
+ * - login anonimo (safe)
+ * - crea defaults se room vuota
+ * - listener realtime sullo stato stanza
+ */
+export async function mpInit({ defaults = {}, onState } = {}) {
+  // 1) room id coerente
+  let roomId = getRoomIdFromUrl();
+
+MP.roomId = roomId;
+
+if (!qs("room")) {
+  setRoomIdInUrl(roomId);
+}
+
+  // 2) auth anonima (safe)
+  await ensureAnonymousSignIn();
+
+  // 3) se stanza vuota -> set defaults
+  const snap = await get(roomRef());
+  if (!snap.exists()) {
+    await set(roomRef(), {
+      ...defaults,
+      adminOnline: false,
+      selectedPlayers: {},
+      turnOrder: [],
+      currentTurnIndex: 0,
+      completedRegions: {},
+      participants: {},
+      createdAt: serverTimestamp(),
+    });
+  } else {
+    // assicura campi minimi (non distruttivo)
+    const cur = snap.val() || {};
+    const patch = {};
+    if (typeof cur.adminOnline === "undefined") patch.adminOnline = false;
+    if (!cur.selectedPlayers) patch.selectedPlayers = {};
+    if (!Array.isArray(cur.turnOrder)) patch.turnOrder = [];
+    if (typeof cur.currentTurnIndex !== "number") patch.currentTurnIndex = 0;
+    if (!cur.completedRegions) patch.completedRegions = {};
+    if (!cur.participants) patch.participants = {};
+    if (Object.keys(patch).length) await update(roomRef(), patch);
+  }
+
+  // 4) assicurati che il partecipante esista
+  await ensureMeExists();
+
+  // 5) listener realtime
+  onValue(roomRef(), (s) => {
+    MP.state = s.val() || null;
+    if (typeof onState === "function") onState(MP.state);
+  });
+}
+
+async function ensureMeExists() {
+  await mpAuthReady();
+  if (!MP.uid) return;
+
+  const pRef = roomRef(`participants/${MP.uid}`);
+  const snap = await get(pRef);
+
+  if (!snap.exists()) {
+    await set(pRef, {
+      uid: MP.uid,
+      nickname: "Guest",
+      wins: 0,
+      losses: 0,
+      games: 0,
+      score: 0,
+      lastSeen: serverTimestamp(),
+    });
+  } else {
+    await update(pRef, { lastSeen: serverTimestamp() });
+  }
+}
+
+/**
+ * mpWrite(path, value)
+ * - scrive un valore (se value è null -> rimuove chiave)
+ */
+export async function mpWrite(path, value) {
+  if (!path) throw new Error("mpWrite: path mancante");
+
+  if (value === null) {
+    const parts = path.split("/").filter(Boolean);
+    const key = parts.pop();
+    const parent = parts.join("/");
+
+    // se stai cancellando una chiave di primo livello
+    if (!parent) {
+      await update(roomRef(), { [key]: null });
+      return;
+    }
+
+    await update(roomRef(parent), { [key]: null });
+    return;
+  }
+
+  await set(roomRef(path), value);
+}
+
+/**
+ * mpUpdate(path, obj)
+ */
+export async function mpUpdate(path, obj) {
+  await update(roomRef(path), obj);
+}
+
+/**
+ * mpAddOrUpdateMe(nickname)
+ */
+export async function mpAddOrUpdateMe(nickname) {
+  await mpAuthReady();
+  if (!MP.uid) throw new Error("uid non pronto");
+
+  await update(roomRef(`participants/${MP.uid}`), {
+    uid: MP.uid,
+    nickname: String(nickname).slice(0, 20),
+    lastSeen: serverTimestamp(),
+  });
+}
+
+/**
+ * mpInc(uid, field, delta=1)
+ */
+export async function mpInc(uid, field, delta = 1) {
+  const r = roomRef(`participants/${uid}/${field}`);
+  await runTransaction(r, (cur) => (Number(cur || 0) + Number(delta || 0)));
+}
+
+/**
+ * mpAddScore(uid, delta)
+ */
+export async function mpAddScore(uid, delta) {
+  return mpInc(uid, "score", delta);
+}
+
+/**
+ * mpParticipantsArray(state)
+ * - converte state.participants (oggetto) -> array con {uid,...}
+ */
 export function mpParticipantsArray(state) {
   const obj = state?.participants || {};
   return Object.entries(obj).map(([uid, p]) => ({ uid, ...(p || {}) }));
 }
 
-/* increment numerico dentro participants/{uid}/{field} */
-export async function mpInc(uid, field, delta = 1) {
-  await mpAuthReady();
-  if (!uid) throw new Error("mpInc: uid mancante");
-  if (!field) throw new Error("mpInc: field mancante");
-
-  const r = roomRef(`participants/${uid}/${field}`);
-  await runTransaction(r, (cur) => {
-    const n = Number(cur || 0);
-    return n + Number(delta || 1);
-  });
-}
-
-/* score += delta */
-export async function mpAddScore(uid, delta) {
-  await mpInc(uid, "score", Number(delta || 0));
-}
-
-/* registra/aggiorna me stesso */
-export async function mpAddOrUpdateMe(nickname) {
-  const uid = await mpAuthReady();
-  if (!uid) throw new Error("uid non pronto");
-
-  const cleanNick = String(nickname || "").trim();
-  if (!cleanNick) throw new Error("Nickname vuoto");
-
-  const pRef = roomRef(`participants/${uid}`);
-  await runTransaction(pRef, (cur) => {
-    const base = cur && typeof cur === "object" ? cur : {};
-    return {
-      nickname: cleanNick,
-      wins: Number(base.wins || 0),
-      losses: Number(base.losses || 0),
-      games: Number(base.games || 0),
-      score: Number(base.score || 0),
-      updatedAt: Date.now(),
-    };
-  });
-
-  return uid;
-}
-
 /* =========================
-   Init room + subscribe state
+   Compat exports (non rompere import)
 ========================= */
-export async function mpInit({ defaults = {}, onState } = {}) {
-  // roomId + basePath
-  MP.roomId = getRoomIdFromHashOrMakeOne();
-  MP.basePath = `rooms/${MP.roomId}`;
+export async function mpWriteRoot(obj) {
+  await update(roomRef(), obj);
+}
+export const mpWriteParticipants = mpParticipantsArray;
 
-  // ensure auth
-  await mpAuthReady();
+export async function mpInitRoom() {
+  // placeholder
+}
 
-  // se stanza vuota -> set defaults (solo la prima volta)
-  const snap = await get(roomRef(""));
-  if (!snap.exists()) {
-    await set(roomRef(""), {
-      ...defaults,
-      createdAt: Date.now(),
-    });
-  } else if (defaults && typeof defaults === "object") {
-    // merge soft: aggiunge solo chiavi mancanti
-    const cur = snap.val() || {};
-    const patch = {};
-    for (const [k, v] of Object.entries(defaults)) {
-      if (cur[k] === undefined) patch[k] = v;
-    }
-    if (Object.keys(patch).length) {
-      await update(roomRef(""), patch);
-    }
-  }
+export async function mpWriteState(path, value) {
+  return mpWrite(path, value);
+}
 
-  // subscribe live
-  onValue(roomRef(""), (s) => {
-    MP.state = s.val() || null;
-    if (typeof onState === "function") {
-      try { onState(MP.state); } catch (e) { console.error(e); }
-    }
-  });
-
-  return MP;
+export async function mpWriteIfMissing(path, value) {
+  const s = await get(roomRef(path));
+  if (!s.exists()) await set(roomRef(path), value);
 }
