@@ -1,5 +1,5 @@
 // /ITALIA/js/firebase-mp.js
-import { db, auth } from "./firebase-mp.js";
+import { db, auth } from "../firebase-mp.js";
 
 import {
   ref,
