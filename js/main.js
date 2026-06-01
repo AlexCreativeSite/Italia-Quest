@@ -1809,7 +1809,11 @@ function updateLeaderboard() {
   if (!leaderboardBody) return;
   leaderboardBody.innerHTML = "";
 
-  const arr = [...participants];
+  const arr = participants.filter(p =>
+  p &&
+  p.isRegistered &&
+  String(p.nickname || "").trim()
+);
   arr.sort((a, b) => {
     if ((b.score || 0) !== (a.score || 0)) return (b.score || 0) - (a.score || 0);
     return (b.wins || 0) - (a.wins || 0);
