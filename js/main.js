@@ -165,7 +165,6 @@ const resetSelectionBtn = document.getElementById("reset-selection-btn");
 const resetNickBtn =
   document.getElementById("reset-nick-btn");
 
-const togglePlayersBtn = document.getElementById("toggle-players-btn");
 const playerSelectionDiv = document.getElementById("player-selection");
 
 const quizModal = document.getElementById("quiz-modal");
@@ -3613,17 +3612,7 @@ if (adminLoginBtn) {
   });
 }
 
-if (togglePlayersBtn && playerSelectionDiv) {
-  togglePlayersBtn.addEventListener("click", () => {
-    if (playerSelectionDiv.classList.contains("hidden")) {
-      playerSelectionDiv.classList.remove("hidden");
-      togglePlayersBtn.textContent = "Nascondi Giocatori";
-    } else {
-      playerSelectionDiv.classList.add("hidden");
-      togglePlayersBtn.textContent = "Mostra Giocatori";
-    }
-  });
-}
+
 
 if (resetSelectionBtn) {
   resetSelectionBtn.addEventListener("click", async () => {
@@ -3795,3 +3784,31 @@ if (document.readyState === "loading") {
 } else {
   bootstrap();
 }
+// TOGGLE PANNELLI UI
+function setupPanelToggles() {
+  const leftBtn =
+    document.getElementById("toggle-left-panel");
+
+  const leftBox =
+    document.getElementById("player-selection");
+
+  if (leftBtn && leftBox) {
+    leftBtn.addEventListener("click", () => {
+      leftBox.classList.toggle("panel-closed");
+    });
+  }
+
+  const trophyBtn =
+    document.getElementById("open-register-btn");
+
+  const communityBox =
+    document.getElementById("register-modal");
+
+  if (trophyBtn && communityBox) {
+    trophyBtn.addEventListener("click", () => {
+      communityBox.classList.toggle("panel-closed");
+    });
+  }
+}
+
+setupPanelToggles();
