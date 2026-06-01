@@ -3483,6 +3483,25 @@ questionBankBtn?.addEventListener("click", async () => {
 /* =========================
    Events wiring base
 ========================= */
+const copyRoomBtn =
+  document.createElement("button");
+
+copyRoomBtn.textContent =
+  "🔗 Copia link stanza";
+
+copyRoomBtn.style.cssText =
+  "position:fixed;top:50px;left:10px;z-index:2300;background:#0066cc;color:white;border:none;border-radius:8px;padding:0.35rem 1rem;font-weight:700;cursor:pointer;box-shadow:0 0 12px #00aaff;";
+
+document.body.appendChild(copyRoomBtn);
+
+copyRoomBtn.addEventListener("click", async () => {
+  const url = new URL(location.href);
+  url.searchParams.set("room", MP.roomId || "public");
+
+  await navigator.clipboard.writeText(url.toString());
+
+  await showAlert("Link stanza copiato ✅");
+});
 if (adminLoginBtn) {
   adminLoginBtn.addEventListener("click", async () => {
     await mpAuthReady();
