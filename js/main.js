@@ -1119,16 +1119,19 @@ importPdfBtn.addEventListener("click", async () => {
     }
 
     if (!questionBank[code]) {
-      questionBank[code] = {
-        region:
-          quizData[code]?.region || code,
-        questions: []
-      };
-    }
+  questionBank[code] = {
+    region: quizData[code]?.region || code,
+    questions: []
+  };
+}
 
-    questionBank[code].questions.push(
-      ...questions
-    );
+if (!Array.isArray(questionBank[code].questions)) {
+  questionBank[code].questions = [];
+}
+
+questionBank[code].questions.push(
+  ...questions
+);
 
     saveQuestionBankLocal();
     await saveQuestionBankFirebase();
