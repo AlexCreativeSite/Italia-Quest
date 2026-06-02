@@ -93,6 +93,10 @@ function openChat() {
   setTimeout(() => els.input?.focus(), 0);
 }
 function closeChat() {
+  if (document.activeElement && els.win?.contains(document.activeElement)) {
+    document.activeElement.blur();
+  }
+
   els.win?.classList.add("closed");
   els.win?.setAttribute("aria-hidden", "true");
 }
