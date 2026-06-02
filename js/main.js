@@ -1785,6 +1785,15 @@ if (menuToggleBtn && menuContainer) {
 
 const communityPanelContent =
   document.getElementById("community-panel-content");
+  if (registerModal) {
+  registerModal.addEventListener("click", (e) => {
+    e.stopPropagation();
+  });
+
+  registerModal.addEventListener("touchstart", (e) => {
+    e.stopPropagation();
+  });
+}
 
 let communityPanelCollapsed = false;
 
