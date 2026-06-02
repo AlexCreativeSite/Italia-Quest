@@ -180,7 +180,7 @@ const gameModeRadios = document.querySelectorAll('input[name="game-mode"]');
 const quizTimeInput = document.getElementById("quiz-time-input");
 const saveQuizTimeBtn = document.getElementById("save-quiz-time-btn");
 const quizTimeMsg = document.getElementById("quiz-time-msg");
-
+const quizTimeConfig = document.getElementById("quiz-time-config");
 /* =========================
    MENU refs
 ========================= */
@@ -1781,7 +1781,29 @@ if (menuToggleBtn && menuContainer) {
   document.addEventListener("click", () => closeMenu());
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenu(); });
 }
+const communityPanelToggle =
+  document.getElementById("community-panel-toggle");
 
+const communityPanelContent =
+  document.getElementById("community-panel-content");
+
+let communityPanelCollapsed = false;
+
+communityPanelToggle?.addEventListener("click", () => {
+  communityPanelCollapsed = !communityPanelCollapsed;
+
+  if (communityPanelContent) {
+    communityPanelContent.style.display =
+      communityPanelCollapsed ? "none" : "block";
+  }
+
+  communityPanelToggle.textContent =
+    communityPanelCollapsed ? "▶" : "▼";
+});
+if (window.innerWidth < 900 && playerSelectionDiv) {
+  playerSelectionDiv.classList.add("panel-closed");
+  playerSelectionDiv.classList.remove("panel-open");
+}
 /* =========================
    Multiplayer: apply state
 ========================= */
@@ -1795,7 +1817,68 @@ function getRegionNumber(code) {
 
 function setAdminOnlineUI(isOnline) {
   adminOnline = !!isOnline;
+
+  if (quizTimeConfig) {
+    quizTimeConfig.style.display = adminOnline ? "block" : "none";
+  }
+const clearChatBtn =
+  document.getElementById("clear-chat-btn");
+  
+
+if (clearChatBtn) {
+  clearChatBtn.style.display =
+    adminOnline ? "block" : "none";
+}
+const resetLeaderboardBtn =
+  document.getElementById("reset-leaderboard-btn");
+
+if (resetLeaderboardBtn) {
+  resetLeaderboardBtn.style.display =
+    adminOnline ? "block" : "none";
+}
+if (clearChatBtn) {
+  clearChatBtn.onclick = async () => {
+    const ok = await showConfirm(
+      "Vuoi cancellare tutti i messaggi della chat?"
+    );
+
+    if (!ok) return;
+
+    await mpWrite("chat/messages", null);
+
+    const chatList =
+      document.getElementById("chat-italia-messages");
+
+    if (chatList) chatList.innerHTML = "";
+
+    await showAlert("💬 Chat pulita con successo!");
+  };
+}
+if (resetLeaderboardBtn) {
+  resetLeaderboardBtn.onclick = async () => {
+    const ok = await showConfirm(
+      "Vuoi davvero azzerare la classifica?\n\nVittorie, sconfitte, partite e punti torneranno a 0.\nI nickname resteranno registrati."
+    );
+
+    if (!ok) return;
+
+    const people = MP.state?.participants || {};
+    const updates = {};
+
+    Object.keys(people).forEach((uid) => {
+      updates[`participants/${uid}/wins`] = 0;
+      updates[`participants/${uid}/losses`] = 0;
+      updates[`participants/${uid}/games`] = 0;
+      updates[`participants/${uid}/score`] = 0;
+    });
+
+    await mpUpdate("", updates);
+
+    await showAlert("🏆 Classifica azzerata con successo!");
+  };
+}
   if (!adminStatus) return;
+
   if (adminOnline) {
     adminStatus.textContent = "Admin Online: ON";
     adminStatus.classList.add("online");
@@ -1803,6 +1886,7 @@ function setAdminOnlineUI(isOnline) {
     adminStatus.textContent = "Admin Online: OFF";
     adminStatus.classList.remove("online");
   }
+
   updateAdminLoginBtn();
 }
 
@@ -1921,14 +2005,15 @@ if (state.questionBank) {
   gameMode = state.gameMode || "quiz";
   quizTimeLimit = Number(state.quizTimeLimit || 15);
 
-  participants = mpParticipantsArray(state).map((p) => ({
-    uid: p.uid,
-    nickname: p.nickname,
-    wins: Number(p.wins || 0),
-    losses: Number(p.losses || 0),
-    games: Number(p.games || 0),
-    score: Number(p.score || 0),
-  }));
+participants = mpParticipantsArray(state).map((p) => ({
+  uid: p.uid,
+  nickname: p.nickname,
+  isRegistered: !!p.isRegistered,
+  wins: Number(p.wins || 0),
+  losses: Number(p.losses || 0),
+  games: Number(p.games || 0),
+  score: Number(p.score || 0),
+}));
 
   completedRegions = Object.keys(state.completedRegions || {});
   turnOrder = Array.isArray(state.turnOrder) ? state.turnOrder : [];
@@ -2259,37 +2344,252 @@ async function nextBtnHandler() {
     return;
   }
 
-  const win = correctCount >= 3;
+ const win = correctCount > totalQuestions / 2;
+const needed = Math.floor(totalQuestions / 2) + 1;
 
-  await mpInc(uid, "games");
+const earnedPoints = win
+  ? (correctCount - needed + 1)
+  : 0;
 
-  if (win) await mpInc(uid, "wins");
-  else await mpInc(uid, "losses");
+await mpInc(uid, "games");
 
-  if (win) {
-    await showAlert(
-      `Complimenti! Hai vinto il quiz su ${getRegionNumber(currentRegionCode)}. ${currentRegionName}!`
-    );
+if (win) {
+  await mpInc(uid, "wins");
 
-    const open = await showConfirm(
-      `Vuoi aprire il pacco per ${getRegionNumber(currentRegionCode)}. ${currentRegionName}?`
-    );
-
-    if (open) {
-      closeQuizModal();
-      await showPaccoModal(currentRegionCode, currentRegionName);
-      return;
-    }
-  } else {
-    await showAlert(
-      "Mi dispiace, non hai superato il quiz e non puoi aprire il pacco."
-    );
-  }
+  await showRegionConquered(
+    currentRegionCode,
+    currentRegionName,
+    earnedPoints
+  );
 
   closeQuizModal();
-  await nextPlayerTurn();
+
+  await showPaccoModal(
+    currentRegionCode,
+    currentRegionName,
+    earnedPoints
+  );
+
+  return;
+
+} else {
+  await mpInc(uid, "losses");
+
+  await showAlert(
+`❌ REGIONE NON CONQUISTATA
+
+Hai risposto correttamente a ${correctCount} domande su ${totalQuestions}.
+
+Per conquistare ${currentRegionName}
+servivano almeno ${needed} risposte corrette.
+
+Ritenta la sfida e prova ad aprire il pacco misterioso! 🎁`
+  );
 }
 
+closeQuizModal();
+await nextPlayerTurn();
+}
+
+function getLocalRegionImage(regionCode) {
+  const map = {
+    "IT-25": "piemonte.png",
+    "IT-23": "valle-daosta.png",
+    "IT-42": "liguria.png",
+    "IT-21": "lombardia.png",
+    "IT-32": "trentino-alto-adige.png",
+    "IT-34": "veneto.png",
+    "IT-45": "friuli-venezia-giulia.png",
+    "IT-36": "emilia-romagna.png",
+    "IT-52": "toscana.png",
+    "IT-55": "umbria.png",
+    "IT-57": "marche.png",
+    "IT-62": "lazio.png",
+    "IT-67": "abruzzo.png",
+    "IT-65": "molise.png",
+    "IT-72": "campania.png",
+    "IT-75": "puglia.png",
+    "IT-77": "basilicata.png",
+    "IT-78": "calabria.png",
+    "IT-88": "sicilia.png",
+    "IT-82": "sardegna.png"
+  };
+
+  return map[regionCode]
+    ? `assets/regions/${map[regionCode]}`
+    : "";
+}
+
+
+function getLocalPaccoImage(regionCode) {
+  const map = {
+    "IT-25": "piemonte.png",
+    "IT-23": "valle-daosta.png",
+    "IT-42": "liguria.png",
+    "IT-21": "lombardia.png",
+    "IT-32": "trentino-alto-adige.png",
+    "IT-34": "veneto.png",
+    "IT-45": "friuli-venezia-giulia.png",
+    "IT-36": "emilia-romagna.png",
+    "IT-52": "toscana.png",
+    "IT-55": "umbria.png",
+    "IT-57": "marche.png",
+    "IT-62": "lazio.png",
+    "IT-67": "abruzzo.png",
+    "IT-65": "molise.png",
+    "IT-72": "campania.png",
+    "IT-75": "puglia.png",
+    "IT-77": "basilicata.png",
+    "IT-78": "calabria.png",
+    "IT-88": "sicilia.png",
+    "IT-82": "sardegna.png"
+  };
+
+  return map[regionCode]
+    ? `assets/pacchi/${map[regionCode]}`
+    : "";
+}
+
+function getRegionConqueredQuote(regionCode) {
+  const quotes = {
+    "IT-25": "🍇 Tra Alpi, vigneti e castelli, il Piemonte premia gli esploratori più curiosi.",
+    "IT-23": "🏔️ Terra di vette leggendarie e castelli antichi, la Valle d'Aosta apre il suo scrigno.",
+    "IT-42": "🌊 Tra mare, borghi colorati e sentieri sospesi, la Liguria illumina il cammino.",
+    "IT-21": "🏙️ Tra laghi, montagne e città operose, la Lombardia celebra la tua conquista.",
+    "IT-32": "⛰️ Nel cuore delle Dolomiti, il Trentino-Alto Adige premia il tuo coraggio.",
+    "IT-34": "🚣 Tra canali, ville e colline dorate, il Veneto custodisce il suo mistero.",
+    "IT-45": "🌅 Tra Alpi, vigneti e Adriatico, il Friuli-Venezia Giulia svela il suo tesoro.",
+    "IT-36": "🍝 Tra torri, motori e sapori leggendari, l'Emilia-Romagna ti accoglie da campione.",
+    "IT-52": "🌻 Tra colline d'oro, arte e poesia, la Toscana celebra la tua impresa.",
+    "IT-55": "🕊️ Nel cuore verde d'Italia, l'Umbria premia chi sa osservare e scoprire.",
+    "IT-57": "🌊 Tra borghi, colline e Adriatico, le Marche aprono la porta al tuo premio.",
+    "IT-62": "🏛️ Tra storia eterna e strade leggendarie, il Lazio riconosce il tuo valore.",
+    "IT-67": "⛰️ Tra montagne, borghi e tradizioni forti, l'Abruzzo saluta il tuo successo.",
+    "IT-65": "🌿 Piccolo scrigno d'Italia, il Molise premia gli esploratori attenti.",
+    "IT-72": "🌋 Tra Vesuvio, mare e antiche città, la Campania accende la tua vittoria.",
+    "IT-75": "🌊 Tra trulli, ulivi e mare cristallino, la Puglia ti consegna il suo premio.",
+    "IT-77": "🏞️ Tra calanchi, borghi e silenzi antichi, la Basilicata custodisce la tua ricompensa.",
+    "IT-78": "🌶️ Tra montagne, coste e tradizioni intense, la Calabria celebra il tuo viaggio.",
+    "IT-88": "🌋 Tra Etna, templi e mare dorato, la Sicilia apre il suo pacco misterioso.",
+    "IT-82": "🌊 Tra nuraghi, mare e vento antico, la Sardegna incorona il tuo cammino."
+  };
+
+  return quotes[regionCode] || "✨ Hai conquistato questa regione e sbloccato il suo pacco misterioso.";
+}
+
+async function showRegionConquered(regionCode, regionName, earnedPoints = 0) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+    overlay.style.zIndex = 8500;
+
+    const box = document.createElement("div");
+    box.className = "modal-box";
+    box.style.cssText = `
+      max-width: 560px;
+      width: min(560px, 92vw);
+      text-align: center;
+      border: 1px solid rgba(0,246,255,.35);
+      box-shadow:
+        0 0 30px rgba(0,0,0,.75),
+        0 0 45px rgba(0,246,255,.20),
+        0 0 75px rgba(176,108,255,.18);
+    `;
+
+    const title = document.createElement("div");
+    title.innerHTML = "🏆 REGIONE CONQUISTATA";
+    title.style.cssText = `
+      font-size: 1.8rem;
+      font-weight: 900;
+      margin-bottom: 12px;
+      color: #ffffff;
+      text-shadow:
+        0 0 10px #00f6ff,
+        0 0 24px rgba(0,246,255,.55);
+    `;
+    box.appendChild(title);
+
+    const imgUrl = getLocalRegionImage(regionCode);
+    if (imgUrl) {
+      const img = document.createElement("img");
+      img.src = imgUrl;
+      img.alt = regionName;
+      img.style.cssText = `
+        max-width: 82%;
+        max-height: 230px;
+        object-fit: contain;
+        display: block;
+        margin: 0 auto 14px auto;
+        border-radius: 18px;
+        border: 2px solid rgba(0,246,255,.35);
+        box-shadow:
+          0 0 16px rgba(0,246,255,.35),
+          0 0 35px rgba(176,108,255,.20);
+      `;
+      img.onerror = () => img.remove();
+      box.appendChild(img);
+    }
+
+    const regionTitle = document.createElement("div");
+    regionTitle.textContent = `${getRegionNumber(regionCode)}. ${regionName}`;
+    regionTitle.style.cssText = `
+      font-size: 1.45rem;
+      font-weight: 900;
+      color: #ffcc66;
+      margin-bottom: 12px;
+      text-shadow: 0 0 14px rgba(255,204,102,.45);
+    `;
+    box.appendChild(regionTitle);
+
+    const quote = document.createElement("div");
+    quote.textContent = getRegionConqueredQuote(regionCode);
+    quote.style.cssText = `
+      font-size: 1.05rem;
+      line-height: 1.45;
+      color: #d8ecff;
+      margin: 0 auto 18px auto;
+      max-width: 460px;
+    `;
+    box.appendChild(quote);
+
+    const sub = document.createElement("div");
+    sub.textContent =
+  `Hai superato la prova e conquistato il diritto di aprire il pacco misterioso.
+
+⭐ Ricompensa quiz: +${earnedPoints} punti`;
+    sub.style.cssText = `
+      font-size: .95rem;
+      color: #ffffff;
+      opacity: .9;
+      margin-bottom: 18px;
+    `;
+    box.appendChild(sub);
+
+    const btns = document.createElement("div");
+    btns.className = "modal-buttons";
+    btns.style.justifyContent = "center";
+
+    const ok = document.createElement("button");
+    ok.textContent = "🎁 APRI IL PACCO";
+    ok.style.cssText = `
+      min-width: 180px;
+      font-weight: 900;
+      box-shadow: 0 0 18px rgba(0,170,255,.6);
+    `;
+
+    ok.addEventListener("click", () => {
+      document.body.removeChild(overlay);
+      resolve();
+    });
+
+    btns.appendChild(ok);
+    box.appendChild(btns);
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    setTimeout(() => ok.focus(), 0);
+  });
+}
 async function startQuizForRegion(regionCode, regionName) {
 const alreadyDone =
   !!MP.state?.completedRegions?.[regionCode];
@@ -2309,7 +2609,16 @@ if (alreadyDone) {
   currentRegionCode = regionCode;
   currentRegionName = regionName;
 
-  await showAlert(`Hai scelto ${getRegionNumber(regionCode)}. ${regionName}`);
+ await showAlert(
+`🗺️ REGIONE SELEZIONATA
+
+${getRegionNumber(regionCode)}. ${regionName}
+
+Preparati alla sfida!
+
+Rispondi correttamente ad almeno ${Math.floor(QUESTIONS_PER_REGION / 2) + 1} domande su ${QUESTIONS_PER_REGION}
+per conquistare la regione e aprire il pacco misterioso. 🎁`
+);
 
  const entry = quizData[regionCode];
 
@@ -2342,15 +2651,30 @@ currentQuizQuestions = shuffle(availableQuestions)
 
 userAnswers = new Array(currentQuizQuestions.length).fill(null);
 
-  const imgUrl = imagesData?.[regionCode];
+const localImgUrl = getLocalRegionImage(regionCode);
+const wikiImgUrl = imagesData?.[regionCode];
 
-  if (imgUrl && imgUrl.trim() !== "") {
-    quizImage.src = imgUrl;
+quizImage.onerror = () => {
+  if (wikiImgUrl && wikiImgUrl.trim() !== "") {
+    quizImage.src = wikiImgUrl;
     quizImage.alt = regionName;
     quizImage.style.display = "block";
   } else {
     quizImage.style.display = "none";
   }
+};
+
+if (localImgUrl) {
+  quizImage.src = localImgUrl;
+  quizImage.alt = regionName;
+  quizImage.style.display = "block";
+} else if (wikiImgUrl && wikiImgUrl.trim() !== "") {
+  quizImage.src = wikiImgUrl;
+  quizImage.alt = regionName;
+  quizImage.style.display = "block";
+} else {
+  quizImage.style.display = "none";
+}
 
   if (quizFeedback) quizFeedback.textContent = "";
 
@@ -2363,7 +2687,7 @@ userAnswers = new Array(currentQuizQuestions.length).fill(null);
 /* =========================
    PACCHI
 ========================= */
-async function showPaccoModal(regionCode, regionName) {
+async function showPaccoModal(regionCode, regionName, earnedPoints = null) {
   if (!turnOrder || turnOrder.length === 0) { await showAlert("Seleziona almeno un giocatore."); return; }
 
   const uid = getCurrentTurnUid();
@@ -2383,14 +2707,38 @@ async function showPaccoModal(regionCode, regionName) {
   titleEl.textContent = `${getRegionNumber(regionCode)}. ${regionName}`;
   box.appendChild(titleEl);
 
-  if (regionObj.imageUrl) {
-    const img = document.createElement("img");
-    img.src = regionObj.imageUrl;
-    img.alt = "Immagine pacco";
-    img.style.cssText = "max-width:80%;max-height:200px;margin:0 auto 1rem auto;display:block;";
-    img.onerror = () => (img.style.display = "none");
-    box.appendChild(img);
-  }
+const localPaccoImg = getLocalPaccoImage(regionCode);
+const wikiPaccoImg = regionObj.imageUrl || "";
+
+if (localPaccoImg || wikiPaccoImg) {
+  const img = document.createElement("img");
+
+  img.src = localPaccoImg || wikiPaccoImg;
+  img.alt = "Immagine pacco";
+
+  img.style.cssText = `
+    max-width:85%;
+    max-height:280px;
+    margin:0 auto 1rem auto;
+    display:block;
+    border-radius:18px;
+    border:2px solid rgba(255,215,120,.45);
+    box-shadow:
+      0 0 18px rgba(255,215,120,.45),
+      0 0 35px rgba(0,246,255,.20);
+    object-fit:contain;
+  `;
+
+  img.onerror = () => {
+    if (wikiPaccoImg && img.src !== wikiPaccoImg) {
+      img.src = wikiPaccoImg;
+    } else {
+      img.style.display = "none";
+    }
+  };
+
+  box.appendChild(img);
+}
 
   const textEl = document.createElement("div");
   textEl.style.cssText = "font-size:1.1rem;margin-bottom:0.8rem;text-align:center;";
@@ -2406,10 +2754,21 @@ async function showPaccoModal(regionCode, regionName) {
 
   switch (effectObj.type) {
     case "score": {
-      const delta = Number(effectObj.delta) || 0;
-      await mpAddScore(uid, delta);
+     const delta =
+  earnedPoints !== null
+    ? Number(earnedPoints)
+    : Number(effectObj.delta) || 0;
+
+await mpAddScore(uid, delta);
       const cur = effectObj.currency || "punti";
-      feedbackMsg = delta >= 0 ? `Hai guadagnato ${delta} ${cur}!` : `Hai perso ${Math.abs(delta)} ${cur}!`;
+      const label =
+  Math.abs(delta) === 1
+    ? "punto"
+    : "punti";
+
+feedbackMsg = delta >= 0
+  ? `Hai guadagnato ${delta} ${label}!`
+  : `Hai perso ${Math.abs(delta)} ${label}!`;
       break;
     }
     case "skipTurn":
@@ -2558,7 +2917,7 @@ function addUniqueQuestion(list, q) {
 
 function buildQuestionsForRegion(code, snippetsByCode, targetCount = QUESTION_POOL_SIZE) {
   const region = quizData[code]?.region || defaultQuizData[code]?.region || code;
-
+totalQuestions
   const cap = CAPOLUOGHI[code] || "N/D";
   const area = MACROAREA[code] || "Centro";
 
@@ -3584,6 +3943,36 @@ copyRoomBtn.addEventListener("click", async () => {
 
   await showAlert("Link stanza copiato ✅");
 });
+const privateRoomBtn = document.createElement("button");
+
+privateRoomBtn.textContent = "🔒 Crea stanza privata";
+
+privateRoomBtn.style.cssText =
+  "position:fixed;top:90px;left:10px;z-index:2300;background:#6a3dff;color:white;border:none;border-radius:8px;padding:0.35rem 1rem;font-weight:700;cursor:pointer;box-shadow:0 0 12px #b06cff;";
+
+document.body.appendChild(privateRoomBtn);
+
+privateRoomBtn.addEventListener("click", async () => {
+  const roomId =
+    "privata-" +
+    Math.random().toString(36).slice(2, 8);
+
+  const url = new URL(location.href);
+  url.searchParams.set("room", roomId);
+
+  await navigator.clipboard.writeText(url.toString());
+
+  await showAlert(
+    `Stanza privata creata ✅
+
+Link copiato negli appunti.
+
+Ora entrerai nella stanza:
+${roomId}`
+  );
+
+  location.href = url.toString();
+});
 if (adminLoginBtn) {
   adminLoginBtn.addEventListener("click", async () => {
     await mpAuthReady();
@@ -3736,22 +4125,22 @@ if (svg) {
       const regionName = group.dataset.regionName;
       if (!regionCode) return;
 
-     const alreadyDone =
-  !!MP.state?.completedRegions?.[regionCode];
+      const alreadyDone =
+        !!MP.state?.completedRegions?.[regionCode];
 
-if (alreadyDone) {
-  await showAlert(
-    "Questa regione è già stata completata. Completa tutta la mappa o avvia una nuova partita."
-  );
-  return;
-}
+      if (alreadyDone) {
+        await showAlert(
+          "Questa regione è già stata completata. Completa tutta la mappa o avvia una nuova partita."
+        );
+        return;
+      }
 
-      if (gameMode === "quiz") await startQuizForRegion(regionCode, regionName);
-      else await startPacchiForRegion(regionCode, regionName);
+      // Versione pubblica: la regione avvia sempre il quiz.
+      // Il pacco verrà aperto dopo il completamento della prova.
+      await startQuizForRegion(regionCode, regionName);
     });
   });
 }
-
 /* =========================
    START: init multiplayer room
 ========================= */
@@ -3812,3 +4201,20 @@ function setupPanelToggles() {
 }
 
 setupPanelToggles();
+const howToPlayBtn = document.getElementById("how-to-play-btn");
+
+howToPlayBtn?.addEventListener("click", async () => {
+  await showAlert(
+`📘 COME SI GIOCA
+
+1. Inserisci il tuo nickname.
+2. L'admin seleziona gli esploratori.
+3. Clicca una regione sulla mappa.
+4. Rispondi al quiz entro il tempo.
+5. Servono almeno 7 risposte corrette su 12.
+6. Se conquisti la regione, apri il pacco misterioso.
+7. Più risposte corrette fai, più punti guadagni.
+
+Buona esplorazione! 🏆`
+  );
+});
