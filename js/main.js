@@ -1807,6 +1807,19 @@ communityPanelToggle?.addEventListener("click", () => {
   communityPanelToggle.textContent =
     communityPanelCollapsed ? "▶" : "▼";
 });
+if (window.innerWidth < 900 && registerModal) {
+  communityPanelCollapsed = true;
+
+  registerModal.classList.add("mobile-mini");
+
+  if (communityPanelContent) {
+    communityPanelContent.style.display = "none";
+  }
+
+  if (communityPanelToggle) {
+    communityPanelToggle.textContent = "▶";
+  }
+}
 /* =========================
    Multiplayer: apply state
 ========================= */
