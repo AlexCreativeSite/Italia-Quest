@@ -1780,8 +1780,7 @@ if (menuToggleBtn && menuContainer) {
   menuContainer.addEventListener("click", (e) => e.stopPropagation());
   document.addEventListener("click", () => closeMenu());
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenu(); });
-}
-const communityPanelToggle =
+}const communityPanelToggle =
   document.getElementById("community-panel-toggle");
 
 const communityPanelContent =
@@ -1789,37 +1788,55 @@ const communityPanelContent =
 
 let communityPanelCollapsed = false;
 
-communityPanelToggle?.addEventListener("click", () => {
-  communityPanelCollapsed = !communityPanelCollapsed;
+function isRealMobile() {
+  return (
+    window.innerWidth < 1100 &&
+    (
+      window.matchMedia("(pointer: coarse)").matches ||
+      navigator.maxTouchPoints > 0
+    )
+  );
+}
 
-  if (registerModal && window.innerWidth < 900) {
+function setCommunityCollapsed(collapsed) {
+  communityPanelCollapsed = collapsed;
+
+  if (registerModal) {
     registerModal.classList.toggle(
       "mobile-mini",
-      communityPanelCollapsed
+      collapsed && isRealMobile()
     );
   }
 
   if (communityPanelContent) {
     communityPanelContent.style.display =
-      communityPanelCollapsed ? "none" : "block";
-  }
-
-  communityPanelToggle.textContent =
-    communityPanelCollapsed ? "▶" : "▼";
-});
-if (window.innerWidth < 900 && registerModal) {
-  communityPanelCollapsed = true;
-
-  registerModal.classList.add("mobile-mini");
-
-  if (communityPanelContent) {
-    communityPanelContent.style.display = "none";
+      collapsed ? "none" : "block";
   }
 
   if (communityPanelToggle) {
-    communityPanelToggle.textContent = "▶";
+    communityPanelToggle.textContent =
+      collapsed ? "▶" : "▼";
   }
 }
+
+communityPanelToggle?.addEventListener("click", () => {
+  setCommunityCollapsed(!communityPanelCollapsed);
+});
+
+function applyMobilePanels() {
+  if (!isRealMobile()) return;
+
+  if (playerSelectionDiv) {
+    playerSelectionDiv.classList.add("panel-closed");
+    playerSelectionDiv.classList.remove("panel-open");
+  }
+
+  setCommunityCollapsed(true);
+}
+
+applyMobilePanels();
+
+window.addEventListener("resize", applyMobilePanels);
 /* =========================
    Multiplayer: apply state
 ========================= */
