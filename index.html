@@ -992,26 +992,35 @@ box-shadow:
   border: 1px solid rgba(0,246,255,.25) !important;
 }
 
-  #register-modal.mobile-mini #community-panel-content {
+#register-modal.mobile-mini #community-panel-content {
+  display: none !important;
+}
+
+#register-modal.mobile-mini #register-title {
+  font-size: 0.85rem;
+  line-height: 1.1;
+  margin: 0;
+}
+
+#register-modal.mobile-mini .panel-title-row {
+  margin: 0;
+}
+
+#register-modal.mobile-mini .panel-toggle-btn {
+  width: 28px;
+  height: 28px;
+  font-size: 0.75rem;
+}
+
+/* MOBILE */
+@media (max-width: 1100px) {
+
+  /* Nasconde il pulsante rosso su telefono */
+  #close-register-btn {
     display: none !important;
   }
 
-  #register-modal.mobile-mini #register-title {
-    font-size: 0.85rem;
-    line-height: 1.1;
-    margin: 0;
-  }
-
-  #register-modal.mobile-mini .panel-title-row {
-    margin: 0;
-  }
-
-  #register-modal.mobile-mini .panel-toggle-btn {
-    width: 28px;
-    height: 28px;
-    font-size: 0.75rem;
-  }
-
+}
   </style>
 
   <!-- Chat CSS -->
@@ -1120,245 +1129,4 @@ box-shadow:
  <div id="game-mode-in-register">
   <p>🎁 Quiz & Pacco Misterioso</p>
 
-  <div class="adventure-mode-info">
-    Completa il quiz della regione e poi apri il pacco sorpresa.
-  </div>
-
-  <input type="hidden" name="game-mode" value="quiz">
-</div>
-
-  <div id="quiz-time-config" style="margin-top:1rem; color:#aad4ff; display:none;">
-    <label for="quiz-time-input" style="font-weight:700;">
-      Durata timer quiz (secondi):
-    </label>
-    <input type="number" id="quiz-time-input" min="5" max="300" step="5" value="15"
-           style="width:60px; margin-left:0.5rem;" />
-    <button id="save-quiz-time-btn"
-            style="margin-left:0.5rem; background:#00aaff; color:#fff;
-                   padding:0.4rem 0.8rem; border:none; border-radius:6px; cursor:pointer;">
-      Salva
-    </button>
-    <div id="quiz-time-msg" aria-live="polite" style="margin-top:0.5rem; font-size:0.9rem;"></div>
-  </div>
-
-  <form id="register-form">
-    <label for="nickname">
-👤 Nome Esploratore:
-</label>
-    <input type="text" id="nickname" name="nickname" required minlength="3" maxlength="20"
-           placeholder="Nickname" autocomplete="off" />
-    <button type="submit">
-🚀 Inizia l'Avventura
-</button>
-<button id="how-to-play-btn" class="info-btn">
-  🏆Guida dell'esploratore
-</button>
-  </form>
-
-  <div id="register-msg" aria-live="polite"></div>
-
-  <div id="leaderboard">
-   <h3>🏅 Classifica Esploratori</h3>
-    <table>
-      <thead>
-        <tr><th>#</th><th>Nickname</th><th>Vittorie</th><th>Sconfitte</th><th>Partite</th><th>Punteggio</th></tr>
-      </thead>
-      <tbody id="leaderboard-body"></tbody>
-    </table>
-    <button id="reset-leaderboard-btn">
-  🧹 Reset Classifica
-</button>
-  </div>
-</div>
-  <button id="close-register-btn">Nascondi Community</button>
-</div>
-
-<button id="open-register-btn">Apri Registrazione</button>
-
-<div id="map-container">
-  <img src="https://i.postimg.cc/dtmzm3F8/Senza-titolo-4000-x-6000-px.png" alt="Mappa Italia" />
-  <svg id="map-svg" viewBox="0 0 500 700" preserveAspectRatio="xMidYMid meet">
-    <g id="IT-25" data-region-code="IT-25" data-region-name="Piemonte" transform="translate(64.44,188.88)">
-      <circle cx="0" cy="0" r="12"/>
-      <text class="region-number" x="0" y="-12"></text>
-      <text class="region-name" x="0" y="16">Piemonte</text>
-    </g>
-    <g id="IT-23" data-region-code="IT-23" data-region-name="Valle d'Aosta" transform="translate(51.11,142.77)">
-      <circle cx="0" cy="0" r="12"/>
-      <text class="region-number" x="0" y="-12"></text>
-      <text class="region-name" x="0" y="16">Valle d'Aosta</text>
-    </g>
-    <g id="IT-42" data-region-code="IT-42" data-region-name="Liguria" transform="translate(96.66,225)">
-      <circle cx="0" cy="0" r="12"/>
-      <text class="region-number" x="0" y="-12"></text>
-      <text class="region-name" x="0" y="16">Liguria</text>
-    </g>
-    <g id="IT-21" data-region-code="IT-21" data-region-name="Lombardia" transform="translate(136.66,155.55)">
-      <circle cx="0" cy="0" r="12"/>
-      <text class="region-number" x="0" y="-12"></text>
-      <text class="region-name" x="0" y="16">Lombardia</text>
-    </g>
-    <g id="IT-32" data-region-code="IT-32" data-region-name="Trentino-Alto Adige" transform="translate(190.55,98.33)">
-      <circle cx="0" cy="0" r="12"/>
-      <text class="region-number" x="0" y="-12"></text>
-      <text class="region-name" x="0" y="16">Trentino-Alto Adige</text>
-    </g>
-    <g id="IT-34" data-region-code="IT-34" data-region-name="Veneto" transform="translate(209.44,168.88)">
-      <circle cx="0" cy="0" r="12"/>
-      <text class="region-number" x="0" y="-12"></text>
-      <text class="region-name" x="0" y="16">Veneto</text>
-    </g>
-    <g id="IT-45" data-region-code="IT-45" data-region-name="Friuli-Venezia Giulia" transform="translate(261.66,126.66)">
-      <circle cx="0" cy="0" r="12"/>
-      <text class="region-number" x="0" y="-12"></text>
-      <text class="region-name" x="0" y="16">Friuli-Venezia Giulia</text>
-    </g>
-    <g id="IT-36" data-region-code="IT-36" data-region-name="Emilia-Romagna" transform="translate(192.77,217.22)">
-      <circle cx="0" cy="0" r="12"/>
-      <text class="region-number" x="0" y="-12"></text>
-      <text class="region-name" x="0" y="16">Emilia-Romagna</text>
-    </g>
-    <g id="IT-52" data-region-code="IT-52" data-region-name="Toscana" transform="translate(187.77,260.55)">
-      <circle cx="0" cy="0" r="12"/>
-      <text class="region-number" x="0" y="-12"></text>
-      <text class="region-name" x="0" y="16">Toscana</text>
-    </g>
-    <g id="IT-55" data-region-code="IT-55" data-region-name="Umbria" transform="translate(245.54,298.88)">
-      <circle cx="0" cy="0" r="12"/>
-      <text class="region-number" x="0" y="-12"></text>
-      <text class="region-name" x="0" y="16">Umbria</text>
-    </g>
-    <g id="IT-57" data-region-code="IT-57" data-region-name="Marche" transform="translate(267.77,280)">
-      <circle cx="0" cy="0" r="12"/>
-      <text class="region-number" x="0" y="-12"></text>
-      <text class="region-name" x="0" y="16">Marche</text>
-    </g>
-    <g id="IT-62" data-region-code="IT-62" data-region-name="Lazio" transform="translate(240.55,333.33)">
-      <circle cx="0" cy="0" r="12"/>
-      <text class="region-number" x="0" y="-12"></text>
-      <text class="region-name" x="0" y="16">Lazio</text>
-    </g>
-    <g id="IT-67" data-region-code="IT-67" data-region-name="Abruzzo" transform="translate(292.21,329.44)">
-      <circle cx="0" cy="0" r="12"/>
-      <text class="region-number" x="0" y="-12"></text>
-      <text class="region-name" x="0" y="16">Abruzzo</text>
-    </g>
-    <g id="IT-65" data-region-code="IT-65" data-region-name="Molise" transform="translate(300,360)">
-      <circle cx="0" cy="0" r="12"/>
-      <text class="region-number" x="0" y="-12"></text>
-      <text class="region-name" x="0" y="16">Molise</text>
-    </g>
-    <g id="IT-72" data-region-code="IT-72" data-region-name="Campania" transform="translate(328.88,400)">
-      <circle cx="0" cy="0" r="12"/>
-      <text class="region-number" x="0" y="-12"></text>
-      <text class="region-name" x="0" y="16">Campania</text>
-    </g>
-    <g id="IT-75" data-region-code="IT-75" data-region-name="Puglia" transform="translate(403.33,388.33)">
-      <circle cx="0" cy="0" r="12"/>
-      <text class="region-number" x="0" y="-12"></text>
-      <text class="region-name" x="0" y="16">Puglia</text>
-    </g>
-    <g id="IT-77" data-region-code="IT-77" data-region-name="Basilicata" transform="translate(383.88,422.22)">
-      <circle cx="0" cy="0" r="12"/>
-      <text class="region-number" x="0" y="-12"></text>
-      <text class="region-name" x="0" y="16">Basilicata</text>
-    </g>
-    <g id="IT-78" data-region-code="IT-78" data-region-name="Calabria" transform="translate(398.88,483.33)">
-      <circle cx="0" cy="0" r="12"/>
-      <text class="region-number" x="0" y="-12"></text>
-      <text class="region-name" x="0" y="16">Calabria</text>
-    </g>
-    <g id="IT-88" data-region-code="IT-88" data-region-name="Sicilia" transform="translate(306.11,567.77)">
-      <circle cx="0" cy="0" r="12"/>
-      <text class="region-number" x="0" y="-12"></text>
-      <text class="region-name" x="0" y="16">Sicilia</text>
-    </g>
-    <g id="IT-82" data-region-code="IT-82" data-region-name="Sardegna" transform="translate(99.44,431.11)">
-      <circle cx="0" cy="0" r="12"/>
-      <text class="region-number" x="0" y="-12"></text>
-      <text class="region-name" x="0" y="16">Sardegna</text>
-    </g>
-  </svg>
-</div>
-
-<div id="quiz-modal" role="dialog" aria-modal="true" aria-labelledby="quiz-title">
-  <h2 id="quiz-title">Quiz Regione</h2>
-  <div id="quiz-timer"></div>
-  <img id="quiz-image" src="" alt="" />
-  <div id="quiz-content"></div>
-  <div id="quiz-feedback"></div>
-  <div id="quiz-controls">
-    <button id="prev-btn" disabled>Precedente</button>
-    <button id="next-btn">Successiva</button>
-    <button id="close-quiz-btn" style="background:#c0392b;">Chiudi</button>
-  </div>
-</div>
-
-<div id="generic-modal-container" style="display:none;"></div>
-
-<div id="quiz-flash-container">
- <div class="quiz-flash">
-🏆 Italia Quest Community
-</div>
-<img
-  id="quiz-flash-image"
-  src="assets/img/italia-quest-logo.png"
-  alt="Italia Quest"
-/>
-</div>
-
-<div id="real-time-clock" aria-label="Orologio in tempo reale"></div>
-
-<!-- Chat UI -->
-<div id="chat-italia-launcher" title="Chat Italia">💬</div>
-
-<div id="chat-italia" class="closed" aria-hidden="true">
-  <div id="chat-italia-header">
-    <div class="left">
-      <span class="badge">Chat Italia</span>
-      <span id="chat-italia-room" class="room"></span>
-    </div>
-    <div class="right">
-      <button id="chat-italia-min" class="icon-btn" title="Riduci">—</button>
-      <button id="chat-italia-close" class="icon-btn danger" title="Chiudi">✕</button>
-    </div>
-  </div>
-
-  <div id="chat-italia-tools">
-    <label class="tool">
-      Trasparenza
-      <input id="chat-italia-opacity" type="range" min="0.35" max="1" step="0.05" value="0.9" />
-    </label>
-
-    <label class="tool">
-      Grande
-      <input id="chat-italia-big" type="checkbox" />
-    </label>
-
-    <button id="chat-italia-pin" class="tool-btn" title="Blocca/Sblocca spostamento">📌</button>
-  </div>
-
-  <div id="chat-italia-body">
-    <div id="chat-italia-messages"></div>
-  </div>
-
-  <form id="chat-italia-form" autocomplete="off">
-    <input id="chat-italia-input" type="text" maxlength="240" placeholder="Scrivi un messaggio..." />
-    <button id="chat-italia-send" type="submit">Invia</button>
-  </form>
-
-  <div id="chat-italia-resize-handle" title="Ridimensiona"></div>
-</div>
-
-<!-- ✅ Scripts (ordine corretto, dentro il body) -->
- <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-
-<script>
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-</script>
-<script type="module" src="./js/main.js?v=9999"></script>
-<script type="module" src="./js/chatItalia.js"></script>
-
-</body>
-</html>
+  <div class="ad
