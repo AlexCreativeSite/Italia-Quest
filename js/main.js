@@ -1845,7 +1845,7 @@ function applyMobilePanels() {
 
 applyMobilePanels();
 
-window.addEventListener("resize", applyMobilePanels);
+window.addEventListener("orientationchange", applyMobilePanels);
 /* =========================
    Multiplayer: apply state
 ========================= */
