@@ -212,7 +212,58 @@ function enableResize() {
     savePosition();
   });
 }
+function isMeRegisteredForChat() {
+  try {
+    const meUid = auth.currentUser?.uid || uid;
+    const p = MP?.state?.participants?.[meUid];
 
+    return !!(
+      p &&
+      p.isRegistered &&
+      String(p.nickname || "").trim()
+    );
+  } catch {
+    return false;
+  }
+}
+
+function showChatRegisterRequired() {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+    overlay.style.zIndex = "12000";
+
+    const box = document.createElement("div");
+    box.className = "modal-box";
+
+    box.innerHTML = `
+      <h3>⚠️ Registrazione richiesta</h3>
+      <p>
+        Prima di scrivere in chat devi registrare il tuo nickname.<br><br>
+        Inserisci il tuo nome esploratore nel pannello Community e premi:<br><br>
+        🚀 <strong>Inizia l'Avventura</strong>
+      </p>
+    `;
+
+    const btns = document.createElement("div");
+    btns.className = "modal-buttons";
+
+    const ok = document.createElement("button");
+    ok.textContent = "OK";
+
+    ok.addEventListener("click", () => {
+      overlay.remove();
+      resolve();
+    });
+
+    btns.appendChild(ok);
+    box.appendChild(btns);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    setTimeout(() => ok.focus(), 0);
+  });
+}
 /* =========================
    Messages
 ========================= */
@@ -240,6 +291,11 @@ async function sendMessage(text) {
   const clean = String(text || "").trim();
   if (!clean) return;
 
+
+if (!isMeRegisteredForChat()) {
+  await showChatRegisterRequired();
+  return;
+}
   await mpAuthReady();
   uid = auth.currentUser?.uid || uid;
 
