@@ -298,22 +298,38 @@ rgba(20,25,60,.95)
       text-align: center;
     }
     #leaderboard {
-      margin-top: 1rem;
-      max-height: 150px;
-      overflow-y: auto;
-      border: 1px solid #004466;
-      border-radius: 6px;
-      padding: 0.5rem;
-      background: #112244dd;
-      color: #aad4ff;
-    }
-    #leaderboard h3 { margin: 0 0 0.5rem 0; text-align: center; }
-    #leaderboard table { width: 100%; border-collapse: collapse; }
-    #leaderboard th, #leaderboard td {
-      padding: 6px 8px;
-      text-align: left;
-      border-bottom: 1px solid #004466;
-    }
+  margin-top: 1rem;
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid #004466;
+  border-radius: 6px;
+  padding: 0.5rem;
+  background: #112244dd;
+  color: #aad4ff;
+
+  font-size: 0.82rem;
+}
+
+#leaderboard h3 {
+  margin: 0 0 0.5rem 0;
+  text-align: center;
+
+  font-size: 1rem;
+}
+
+#leaderboard table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#leaderboard th,
+#leaderboard td {
+  padding: 4px 6px;
+  text-align: left;
+  border-bottom: 1px solid #004466;
+
+  font-size: 0.78rem;
+}
     #close-register-btn {
       background:#c0392b;
       color:white;
@@ -399,9 +415,10 @@ font-weight: 700;
 
   z-index: 2300;
 }
+
     #player-selection {
       position: fixed;
-      top: 95px;
+      top: 165px;
       left: 10px;
       background:
 linear-gradient(
@@ -621,14 +638,68 @@ box-shadow:
       z-index: 2101;
     }
     #quiz-controls button:hover { background: #008fcc; }
-    #quiz-image {
-      max-width: 100%;
-      max-height: 180px;
-      border-radius: 12px;
-      box-shadow: 0 0 10px #00aaff;
-      display: none;
-      margin-bottom: 10px;
-    }
+ #quiz-image {
+  display: none;
+
+  width: auto;
+  max-width: 320px;
+  max-height: 240px;
+
+  object-fit: contain;
+
+  margin: 0 auto 20px auto;
+
+  border-radius: 18px;
+
+  border: 2px solid rgba(0,246,255,.45);
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255,255,255,.05),
+      rgba(0,246,255,.03)
+    );
+
+  box-shadow:
+    0 0 15px rgba(0,246,255,.35),
+    0 0 30px rgba(0,246,255,.20),
+    0 0 50px rgba(176,108,255,.20);
+
+  transition:
+    transform .3s ease,
+    box-shadow .3s ease;
+
+  animation: regionGlow 3s ease-in-out infinite;
+}
+
+#quiz-image:hover {
+  transform: scale(1.03);
+
+  box-shadow:
+    0 0 20px rgba(0,246,255,.5),
+    0 0 40px rgba(0,246,255,.3),
+    0 0 60px rgba(176,108,255,.3);
+}
+
+@keyframes regionGlow {
+  0% {
+    box-shadow:
+      0 0 12px rgba(0,246,255,.25),
+      0 0 25px rgba(176,108,255,.15);
+  }
+
+  50% {
+    box-shadow:
+      0 0 20px rgba(0,246,255,.45),
+      0 0 40px rgba(176,108,255,.25);
+  }
+
+  100% {
+    box-shadow:
+      0 0 12px rgba(0,246,255,.25),
+      0 0 25px rgba(176,108,255,.15);
+  }
+}
     #quiz-timer { margin: 0.5rem 0; font-weight: 700; text-align: center; }
 
     .modal-overlay {
@@ -707,9 +778,10 @@ box-shadow:
 
 #quiz-flash-container {
   position: fixed;
-  bottom: 170px;
+  bottom: 90px;
   left: 60px;
   width: 160px;
+
 
   z-index: 90;
 
@@ -838,6 +910,77 @@ box-shadow:
   left: 210px;
   top: 52px;
 }
+#clear-chat-btn{
+  width:100%;
+  margin-top:8px;
+
+  background:linear-gradient(
+    135deg,
+    #ff8800,
+    #ff4444
+  );
+
+  color:white;
+  border:none;
+  border-radius:4px;
+
+  padding:5px;
+  cursor:pointer;
+  font-weight:700;
+}
+#clear-chat-btn{
+  display:none;
+}
+.info-btn{
+  width:100%;
+  margin:10px 0;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  background:linear-gradient(135deg,#00aaff,#8844ff);
+  color:white;
+  font-weight:700;
+  cursor:pointer;
+}
+#reset-leaderboard-btn{
+  width:100%;
+  margin-top:8px;
+  padding:8px;
+
+  border:none;
+  border-radius:8px;
+
+  background:linear-gradient(135deg,#ff8800,#ff4444);
+  color:white;
+
+  font-weight:700;
+  cursor:pointer;
+}
+.panel-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.panel-title-row h2 {
+  margin: 0;
+  flex: 1;
+}
+
+.panel-toggle-btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #00f6ff, #b06cff);
+  color: white;
+  font-weight: 900;
+  box-shadow:
+    0 0 12px rgba(0,246,255,.35),
+    0 0 22px rgba(176,108,255,.25);
+}
   </style>
 
   <!-- Chat CSS -->
@@ -874,7 +1017,6 @@ box-shadow:
 <button id="menu-toggle-btn">
 ⚙️ Italia Quest
 </button>
-
 <div id="menu-container">
   <button id="manage-questions-btn" title="Gestisci domande quiz">Gestisci Domande</button>
 
@@ -900,30 +1042,61 @@ box-shadow:
 
 
 <div id="player-selection" class="panel-open">
+
   <label><strong>🌍 Esploratori Online</strong></label>
+
   <ul id="player-list"></ul>
+
   <div id="players-info">
     <p><strong>⭐ Squadra Attiva</strong></p>
-    <div id="selected-players-details">Nessun esploratore selezionato.</div>
+
+    <div id="selected-players-details">
+      Nessun esploratore selezionato.
+    </div>
   </div>
-  <button id="reset-selection-btn">🔄 Reset Squadra</button>
+
+  <button id="reset-selection-btn">
+    🔄 Reset Squadra
+  </button>
+
   <button id="reset-nick-btn">
-  🧹 Reset Nick
-</button>
+    🧹 Reset Nick
+  </button>
+
+  <button id="clear-chat-btn">
+    💬 Pulisci Chat
+  </button>
+
+</div>
+<div id="register-modal" role="dialog" aria-modal="true" aria-labelledby="register-title" class="active">
+ <div class="panel-title-row">
+  <h2 id="register-title">
+    🏆 Community Italia Quest
+  </h2>
+
+  <button
+    type="button"
+    id="community-panel-toggle"
+    class="panel-toggle-btn"
+    title="Apri/chiudi pannello Community"
+  >
+    ▼
+  </button>
 </div>
 
-<div id="register-modal" role="dialog" aria-modal="true" aria-labelledby="register-title" class="active">
-  <h2 id="register-title">
-🏆 Community Italia Quest
-</h2>
+<div id="community-panel-content">
 
-  <div id="game-mode-in-register">
-    <p>Modalità di gioco:</p>
-    <label><input type="radio" name="game-mode" value="quiz"> Quiz</label>
-    <label><input type="radio" name="game-mode" value="pacchi"> Pacchi e Numeri</label>
+ <div id="game-mode-in-register">
+  <p>🎁 Quiz & Pacco Misterioso</p>
+
+  <div class="adventure-mode-info">
+    Completa il quiz della regione e poi apri il pacco sorpresa.
   </div>
 
-  <div id="quiz-time-config" style="margin-top:1rem; color:#aad4ff;">
+  <input type="hidden" name="game-mode" value="quiz">
+</div>
+
+  <div id="quiz-time-config" style="margin-top:1rem; color:#aad4ff; display:none;">
     <label for="quiz-time-input" style="font-weight:700;">
       Durata timer quiz (secondi):
     </label>
@@ -946,6 +1119,9 @@ box-shadow:
     <button type="submit">
 🚀 Inizia l'Avventura
 </button>
+<button id="how-to-play-btn" class="info-btn">
+  🏆Guida dell'esploratore
+</button>
   </form>
 
   <div id="register-msg" aria-live="polite"></div>
@@ -958,9 +1134,12 @@ box-shadow:
       </thead>
       <tbody id="leaderboard-body"></tbody>
     </table>
+    <button id="reset-leaderboard-btn">
+  🧹 Reset Classifica
+</button>
   </div>
-
-  <button id="close-register-btn">Chiudi Registrazione</button>
+</div>
+  <button id="close-register-btn">Nascondi Community</button>
 </div>
 
 <button id="open-register-btn">Apri Registrazione</button>
@@ -1092,7 +1271,7 @@ box-shadow:
 </div>
 <img
   id="quiz-flash-image"
-  src="assents/img/italia-quest-logo.png"
+  src="assets/img/italia-quest-logo.png"
   alt="Italia Quest"
 />
 </div>
