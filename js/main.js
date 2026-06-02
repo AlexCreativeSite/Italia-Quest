@@ -1804,6 +1804,11 @@ if (window.innerWidth < 900 && playerSelectionDiv) {
   playerSelectionDiv.classList.add("panel-closed");
   playerSelectionDiv.classList.remove("panel-open");
 }
+if (window.innerWidth < 900 && communityPanelContent && communityPanelToggle) {
+  communityPanelCollapsed = true;
+  communityPanelContent.style.display = "none";
+  communityPanelToggle.textContent = "▶";
+}
 /* =========================
    Multiplayer: apply state
 ========================= */
