@@ -1792,6 +1792,13 @@ let communityPanelCollapsed = false;
 communityPanelToggle?.addEventListener("click", () => {
   communityPanelCollapsed = !communityPanelCollapsed;
 
+  if (registerModal && window.innerWidth < 900) {
+    registerModal.classList.toggle(
+      "mobile-mini",
+      communityPanelCollapsed
+    );
+  }
+
   if (communityPanelContent) {
     communityPanelContent.style.display =
       communityPanelCollapsed ? "none" : "block";
@@ -1800,15 +1807,6 @@ communityPanelToggle?.addEventListener("click", () => {
   communityPanelToggle.textContent =
     communityPanelCollapsed ? "▶" : "▼";
 });
-if (window.innerWidth < 900 && playerSelectionDiv) {
-  playerSelectionDiv.classList.add("panel-closed");
-  playerSelectionDiv.classList.remove("panel-open");
-}
-if (window.innerWidth < 900 && communityPanelContent && communityPanelToggle) {
-  communityPanelCollapsed = true;
-  communityPanelContent.style.display = "none";
-  communityPanelToggle.textContent = "▶";
-}
 /* =========================
    Multiplayer: apply state
 ========================= */
