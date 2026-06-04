@@ -160,6 +160,7 @@ const adminLoginBtn = document.getElementById("admin-login-btn");
 
 const playerList = document.getElementById("player-list");
 const selectedPlayersDetails = document.getElementById("selected-players-details");
+
 const resetSelectionBtn = document.getElementById("reset-selection-btn");
 
 const resetNickBtn =
@@ -199,6 +200,8 @@ const managePacchiBtn = document.getElementById("manage-pacchi-btn");
 const archiveEventsBtn = document.getElementById("archive-events-btn");
 const documentsBtn = document.getElementById("documents-btn");
 
+const toggleLeftPanelBtn =
+  document.getElementById("toggle-left-panel");
 /* =========================
    Turn indicator
 ========================= */
@@ -218,7 +221,14 @@ turnIndicatorDiv.style.cssText = `
   display: none;
 `;
 turnIndicatorDiv.innerHTML = `Turno di: <span id="turn-player-name"></span>`;
-document.body.appendChild(turnIndicatorDiv);
+const mapContainer =
+  document.getElementById("map-container");
+
+if (window.innerWidth <= 768 && mapContainer) {
+  mapContainer.appendChild(turnIndicatorDiv);
+} else {
+  document.body.appendChild(turnIndicatorDiv);
+}
 const turnNameSpan = document.getElementById("turn-player-name");
 
 /* =========================
@@ -1128,9 +1138,11 @@ if (!Array.isArray(questionBank[code].questions)) {
   questionBank[code].questions = [];
 }
 
-questionBank[code].questions.push(
-  ...questions
-);
+questionBank[code].questions =
+  mergeUniqueQuestions(
+    questionBank[code].questions || [],
+    questions
+  );
 
     saveQuestionBankLocal();
     await saveQuestionBankFirebase();
@@ -2023,7 +2035,14 @@ function updateMapProgressVisual() {
 function applyPersistedGameModeUI() {
   gameModeRadios.forEach((r) => { r.checked = (r.value === gameMode); });
 }
+if (toggleLeftPanelBtn && playerSelectionDiv) {
+  toggleLeftPanelBtn.onclick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
 
+    playerSelectionDiv.classList.toggle("mobile-open");
+  };
+}
 function applyRemoteStateToUI(state) {
   if (!state) return;
 
@@ -2126,6 +2145,9 @@ for (let i = uids.length - 1; i > 0; i--) {
 }
       await mpWrite("turnOrder", uids);
       await mpWrite("currentTurnIndex", 0);
+      if (window.innerWidth <= 768) {
+  playerSelectionDiv?.classList.remove("mobile-open");
+}
     });
 
     left.appendChild(cb);
@@ -3966,12 +3988,10 @@ questionBankBtn?.addEventListener("click", async () => {
 /* =========================
    Events wiring base
 ========================= */
-const copyRoomBtn =
-  document.createElement("button");
 
-copyRoomBtn.textContent =
-  "🔗 Copia link stanza";
-
+const copyRoomBtn = document.createElement("button");
+copyRoomBtn.id = "copy-room-btn";
+copyRoomBtn.textContent = "🔗 Copia link stanza";
 copyRoomBtn.style.cssText =
   "position:fixed;top:50px;left:10px;z-index:2300;background:#0066cc;color:white;border:none;border-radius:8px;padding:0.35rem 1rem;font-weight:700;cursor:pointer;box-shadow:0 0 12px #00aaff;";
 
@@ -3980,24 +4000,20 @@ document.body.appendChild(copyRoomBtn);
 copyRoomBtn.addEventListener("click", async () => {
   const url = new URL(location.href);
   url.searchParams.set("room", MP.roomId || "public");
-
   await navigator.clipboard.writeText(url.toString());
-
   await showAlert("Link stanza copiato ✅");
 });
+
 const privateRoomBtn = document.createElement("button");
-
+privateRoomBtn.id = "private-room-btn";
 privateRoomBtn.textContent = "🔒 Crea stanza privata";
-
 privateRoomBtn.style.cssText =
   "position:fixed;top:90px;left:10px;z-index:2300;background:#6a3dff;color:white;border:none;border-radius:8px;padding:0.35rem 1rem;font-weight:700;cursor:pointer;box-shadow:0 0 12px #b06cff;";
 
 document.body.appendChild(privateRoomBtn);
 
 privateRoomBtn.addEventListener("click", async () => {
-  const roomId =
-    "privata-" +
-    Math.random().toString(36).slice(2, 8);
+  const roomId = "privata-" + Math.random().toString(36).slice(2, 8);
 
   const url = new URL(location.href);
   url.searchParams.set("room", roomId);
@@ -4005,7 +4021,7 @@ privateRoomBtn.addEventListener("click", async () => {
   await navigator.clipboard.writeText(url.toString());
 
   await showAlert(
-    `Stanza privata creata ✅
+`Stanza privata creata ✅
 
 Link copiato negli appunti.
 
@@ -4015,11 +4031,34 @@ ${roomId}`
 
   location.href = url.toString();
 });
+
+/* Pulsanti mobile dentro menu Italia Quest */
+if (menuContainer) {
+  const mobileCopyBtn = document.createElement("button");
+  mobileCopyBtn.id = "mobile-copy-room-btn";
+  mobileCopyBtn.textContent = "🔗 Copia link stanza";
+  mobileCopyBtn.addEventListener("click", () => {
+    copyRoomBtn.click();
+  });
+
+  const mobilePrivateBtn = document.createElement("button");
+  mobilePrivateBtn.id = "mobile-private-room-btn";
+  mobilePrivateBtn.textContent = "🔒 Crea stanza privata";
+  mobilePrivateBtn.addEventListener("click", () => {
+    privateRoomBtn.click();
+  });
+
+  menuContainer.appendChild(mobileCopyBtn);
+  menuContainer.appendChild(mobilePrivateBtn);
+}
+
 if (adminLoginBtn) {
   adminLoginBtn.addEventListener("click", async () => {
     await mpAuthReady();
+
     if (!adminOnline) {
       const pwd = await showPrompt("Inserisci password admin:");
+
       if (pwd === ADMIN_PASSWORD) {
         await mpWrite("adminOnline", true);
         await showAlert(`Admin ON (stanza ${MP.roomId})`);
@@ -4027,74 +4066,49 @@ if (adminLoginBtn) {
         await showAlert("Password errata. Accesso negato.");
       }
     } else {
-
-  localAdmin = false;
-
-  await mpWrite(
-    "adminOnline",
-    false
-  );
-
-  await showAlert(
-    "Logout admin effettuato."
-  );
-
-}
+      localAdmin = false;
+      await mpWrite("adminOnline", false);
+      await showAlert("Logout admin effettuato.");
+    }
   });
 }
-
-
 
 if (resetSelectionBtn) {
   resetSelectionBtn.addEventListener("click", async () => {
-
     await mpAuthReady();
-
     await mpWrite("selectedPlayers", {});
     await mpWrite("turnOrder", []);
     await mpWrite("currentTurnIndex", 0);
-
     await mpWrite("completedRegions", {});
-
   });
 }
+
 if (resetNickBtn) {
+  resetNickBtn.addEventListener("click", async () => {
+    const ok = await showConfirm("Cancellare tutti i nickname registrati?");
+    if (!ok) return;
 
-  resetNickBtn.addEventListener(
-    "click",
-    async () => {
+    await mpAuthReady();
+    await mpWrite("participants", {});
+    await mpWrite("selectedPlayers", {});
+    await mpWrite("turnOrder", []);
+    await mpWrite("currentTurnIndex", 0);
+    await mpWrite("completedRegions", {});
 
-      const ok =
-        await showConfirm(
-          "Cancellare tutti i nickname registrati?"
-        );
-
-      if (!ok) return;
-
-      await mpAuthReady();
-
-      await mpWrite("participants", {});
-      await mpWrite("selectedPlayers", {});
-      await mpWrite("turnOrder", []);
-      await mpWrite("currentTurnIndex", 0);
-      await mpWrite("completedRegions", {});
-
-      await showAlert(
-        "Nickname eliminati."
-      );
-
-    }
-  );
-
+    await showAlert("Nickname eliminati.");
+  });
 }
+
 if (registerForm) {
   registerForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+
     if (registeringLock) return;
     registeringLock = true;
 
     try {
       const nickname = registerForm.nickname.value.trim();
+
       if (!nickname) {
         if (registerMsg) {
           registerMsg.style.color = "#ff4444";
@@ -4121,10 +4135,15 @@ if (registerForm) {
 }
 
 if (closeRegisterBtn && registerModal) {
-  closeRegisterBtn.addEventListener("click", () => registerModal.classList.remove("active"));
+  closeRegisterBtn.addEventListener("click", () => {
+    registerModal.classList.remove("active");
+  });
 }
+
 if (openRegisterBtn && registerModal) {
-  openRegisterBtn.addEventListener("click", () => registerModal.classList.add("active"));
+  openRegisterBtn.addEventListener("click", () => {
+    registerModal.classList.add("active");
+  });
 }
 
 gameModeRadios.forEach((r) => {
@@ -4138,6 +4157,7 @@ gameModeRadios.forEach((r) => {
 if (saveQuizTimeBtn && quizTimeInput) {
   saveQuizTimeBtn.addEventListener("click", async () => {
     const v = parseInt(quizTimeInput.value, 10);
+
     if (isNaN(v) || v < 5) {
       if (quizTimeMsg) {
         quizTimeMsg.style.color = "#ff4444";
@@ -4146,8 +4166,10 @@ if (saveQuizTimeBtn && quizTimeInput) {
       }
       return;
     }
+
     await mpAuthReady();
     await mpWrite("quizTimeLimit", v);
+
     if (quizTimeMsg) {
       quizTimeMsg.style.color = "#22cc88";
       quizTimeMsg.textContent = `Timer impostato a ${v}s`;
@@ -4156,15 +4178,29 @@ if (saveQuizTimeBtn && quizTimeInput) {
   });
 }
 
-if (prevBtn) prevBtn.addEventListener("click", () => { if (currentQuestionIndex > 0) { currentQuestionIndex--; showQuestion(); } });
-if (nextBtn) nextBtn.addEventListener("click", () => nextBtnHandler());
-if (closeQuizBtn) closeQuizBtn.addEventListener("click", () => closeQuizModal());
+if (prevBtn) {
+  prevBtn.addEventListener("click", () => {
+    if (currentQuestionIndex > 0) {
+      currentQuestionIndex--;
+      showQuestion();
+    }
+  });
+}
+
+if (nextBtn) {
+  nextBtn.addEventListener("click", () => nextBtnHandler());
+}
+
+if (closeQuizBtn) {
+  closeQuizBtn.addEventListener("click", () => closeQuizModal());
+}
 
 if (svg) {
   svg.querySelectorAll("g[data-region-code]").forEach((group) => {
     group.addEventListener("click", async () => {
       const regionCode = group.dataset.regionCode;
       const regionName = group.dataset.regionName;
+
       if (!regionCode) return;
 
       const alreadyDone =
@@ -4177,8 +4213,6 @@ if (svg) {
         return;
       }
 
-      // Versione pubblica: la regione avvia sempre il quiz.
-      // Il pacco verrà aperto dopo il completamento della prova.
       await startQuizForRegion(regionCode, regionName);
     });
   });
