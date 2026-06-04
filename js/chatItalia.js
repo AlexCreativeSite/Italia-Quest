@@ -216,7 +216,6 @@ function isMeRegisteredForChat() {
   try {
     const meUid = auth.currentUser?.uid || uid;
     const p = MP?.state?.participants?.[meUid];
-
     return !!(
       p &&
       p.isRegistered &&
