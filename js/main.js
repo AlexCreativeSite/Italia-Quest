@@ -138,6 +138,7 @@ let currentQuestionIndex = 0;
 let userAnswers = [];
 let currentQuizQuestions = [];
 let questionBank = {};
+window.questionBank = questionBank;
 let quizIntervalId = null;
 let quizTimeRemaining = 0;
 
@@ -234,6 +235,19 @@ const turnNameSpan = document.getElementById("turn-player-name");
 /* =========================
    UI helpers: modals
 ========================= */
+function setItaliaQuestLoading(title, text, active = true) {
+  const panel = document.getElementById("iq-loading-panel");
+  const titleEl = document.getElementById("iq-loading-title");
+  const textEl = document.getElementById("iq-loading-text");
+
+  if (!panel) return;
+
+  if (titleEl) titleEl.textContent = title;
+  if (textEl) textEl.textContent = text;
+
+  panel.classList.toggle("active", active);
+}
+
 function showAlert(message) {
   return new Promise((resolve) => {
     const overlay = document.createElement("div");
@@ -1518,6 +1532,7 @@ async function loadQuestionBank() {
     }
 
     questionBank = await res.json();
+    window.questionBank = questionBank;
 
     console.log(
       "📚 Archivio Italia Quest caricato:",
@@ -1532,6 +1547,8 @@ async function loadQuestionBank() {
     );
 
     questionBank = {};
+    window.questionBank = questionBank;
+      saveQuestionBankLocal();
   }
 }
 
@@ -1570,6 +1587,7 @@ function loadQuestionBankLocal() {
 
     questionBank =
       JSON.parse(saved);
+      window.questionBank = questionBank;
 
     console.log(
       "💾 Archivio caricato da localStorage"
@@ -1933,6 +1951,11 @@ if (resetLeaderboardBtn) {
 }
   if (!adminStatus) return;
 
+if (closeRegisterBtn) {
+  closeRegisterBtn.style.display =
+    (adminOnline || localAdmin) ? "flex" : "none";
+}
+
   if (adminOnline) {
     adminStatus.textContent = "Admin Online: ON";
     adminStatus.classList.add("online");
@@ -2059,6 +2082,8 @@ if (state.questionBank) {
   );
 
   questionBank = state.questionBank;
+  window.questionBank = questionBank;
+
   saveQuestionBankLocal();
 
 }
@@ -4006,14 +4031,32 @@ copyRoomBtn.addEventListener("click", async () => {
 
 const privateRoomBtn = document.createElement("button");
 privateRoomBtn.id = "private-room-btn";
-privateRoomBtn.textContent = "🔒 Crea stanza privata";
+privateRoomBtn.textContent = "🏠 Entra / Crea Stanza";
 privateRoomBtn.style.cssText =
   "position:fixed;top:90px;left:10px;z-index:2300;background:#6a3dff;color:white;border:none;border-radius:8px;padding:0.35rem 1rem;font-weight:700;cursor:pointer;box-shadow:0 0 12px #b06cff;";
 
 document.body.appendChild(privateRoomBtn);
 
 privateRoomBtn.addEventListener("click", async () => {
-  const roomId = "privata-" + Math.random().toString(36).slice(2, 8);
+  const name = await showPrompt(
+    "Nome stanza da aprire o creare:",
+    {
+      password: false,
+      placeholder: "Esempio: Temeria, Milano, Palermo"
+    }
+  );
+
+  if (name === null) return;
+
+  const cleanName = String(name)
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zA-Z0-9_-]/g, "")
+    .slice(0, 30);
+
+  const roomId = cleanName || (
+    "privata-" + Math.random().toString(36).slice(2, 8)
+  );
 
   const url = new URL(location.href);
   url.searchParams.set("room", roomId);
@@ -4021,16 +4064,39 @@ privateRoomBtn.addEventListener("click", async () => {
   await navigator.clipboard.writeText(url.toString());
 
   await showAlert(
-`Stanza privata creata ✅
+`Stanza pronta ✅
+
+Nome stanza:
+${roomId}
 
 Link copiato negli appunti.
 
-Ora entrerai nella stanza:
-${roomId}`
+Ora entrerai nella stanza.`
   );
 
   location.href = url.toString();
 });
+const publicRoomBtn =
+  document.getElementById("public-room-btn");
+
+if (publicRoomBtn) {
+  publicRoomBtn.addEventListener("click", async () => {
+    const url = new URL(location.href);
+    url.searchParams.set("room", "public");
+
+    await navigator.clipboard.writeText(url.toString());
+
+    await showAlert(
+`Stanza pubblica pronta ✅
+
+Link copiato negli appunti.
+
+Ora entrerai nella stanza pubblica.`
+    );
+
+    location.href = url.toString();
+  });
+}
 
 /* Pulsanti mobile dentro menu Italia Quest */
 if (menuContainer) {
@@ -4134,10 +4200,25 @@ if (registerForm) {
   });
 }
 
-if (closeRegisterBtn && registerModal) {
+if (closeRegisterBtn) {
+
+  closeRegisterBtn.style.display =
+    localStorage.getItem("localAdmin") === "true" ? "" : "none";
+
   closeRegisterBtn.addEventListener("click", () => {
-    registerModal.classList.remove("active");
+
+    const panel = document.getElementById("admin-control-panel");
+
+    if (!panel) {
+      console.warn("🛡️ Centro Controllo non ancora disponibile.");
+      return;
+    }
+
+    panel.style.display =
+      panel.style.display === "none" ? "block" : "none";
+
   });
+
 }
 
 if (openRegisterBtn && registerModal) {
@@ -4221,6 +4302,11 @@ if (svg) {
    START: init multiplayer room
 ========================= */
 async function bootstrap() {
+  setItaliaQuestLoading(
+  "🌍 Italia Quest si sta preparando...",
+  "Connessione agli archivi, caricamento domande e giocatori.",
+  true
+);
   await loadQuestionBank();
   await mpInit({
     defaults: {
@@ -4240,7 +4326,19 @@ async function bootstrap() {
     },
     onState: (state) => applyRemoteStateToUI(state),
   });
+setItaliaQuestLoading(
+  "✅ Italia Quest pronto!",
+  "Registra il nickname, seleziona la squadra e scegli una regione.",
+  true
+);
 
+setTimeout(() => {
+  setItaliaQuestLoading("", "", false);
+}, 2500);
+window.ItaliaQuestAdmin = {
+  getRoomId: () => MP.roomId,
+  getState: () => MP.state
+};
   console.log("ROOM ID:", MP.roomId);
 }
 
