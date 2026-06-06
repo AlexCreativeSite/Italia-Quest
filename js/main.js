@@ -1982,14 +1982,133 @@ function updateTurnIndicator() {
   if (!turnOrder || turnOrder.length === 0) {
     turnIndicatorDiv.style.display = "none";
     turnNameSpan.textContent = "";
+    clearAfkTimer();
     return;
   }
+
   const uid = turnOrder[currentTurnIndex] || turnOrder[0];
   const p = (MP.state?.participants || {})[uid];
+
   turnNameSpan.textContent = p?.nickname || "";
   turnIndicatorDiv.style.display = "block";
+
+  startAfkTimerForCurrentTurn();
 }
 
+let afkTimerId = null;
+let afkActiveUid = null;
+let afkWarningLevel = 0;
+
+const AFK_TEST_MODE = true;
+
+const AFK_TIMES = AFK_TEST_MODE
+  ? [20, 40, 60, 80]
+  : [60, 120, 180, 240];
+
+function clearAfkTimer() {
+  if (afkTimerId) {
+    clearInterval(afkTimerId);
+    afkTimerId = null;
+  }
+
+  afkActiveUid = null;
+  afkWarningLevel = 0;
+}
+
+function showAfkNotice(message) {
+  let box = document.getElementById("afk-notice-box");
+
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "afk-notice-box";
+    box.style.cssText = `
+      position: fixed;
+      top: 90px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 15000;
+      background: rgba(5,18,40,.94);
+      color: #ffffff;
+      border: 1px solid rgba(255,200,0,.65);
+      border-radius: 16px;
+      padding: 14px 18px;
+      font-family: Arial, sans-serif;
+      font-weight: 800;
+      text-align: center;
+      box-shadow: 0 0 25px rgba(255,200,0,.35);
+      max-width: min(420px, 92vw);
+      line-height: 1.4;
+    `;
+
+    document.body.appendChild(box);
+  }
+
+  box.innerHTML = message;
+
+  setTimeout(() => {
+    if (box && box.parentNode) {
+      box.parentNode.removeChild(box);
+    }
+  }, 7000);
+}
+
+function startAfkTimerForCurrentTurn() {
+  clearAfkTimer();
+
+  const uid = getCurrentTurnUid();
+  if (!uid) return;
+
+  const player = MP.state?.participants?.[uid];
+  const name = player?.nickname || "Giocatore";
+
+  afkActiveUid = uid;
+  afkWarningLevel = 0;
+
+  let elapsed = 0;
+
+  afkTimerId = setInterval(async () => {
+    elapsed++;
+
+    if (getCurrentTurnUid() !== afkActiveUid) {
+      clearAfkTimer();
+      return;
+    }
+
+    if (elapsed === AFK_TIMES[0]) {
+      afkWarningLevel = 1;
+      showAfkNotice(`
+        ⚠️ Richiamo 1/3<br>
+        ${name}, è il tuo turno.
+      `);
+    }
+
+    if (elapsed === AFK_TIMES[1]) {
+      afkWarningLevel = 2;
+      showAfkNotice(`
+        ⚠️ Richiamo 2/3<br>
+        ${name}, la squadra ti aspetta.
+      `);
+    }
+
+    if (elapsed === AFK_TIMES[2]) {
+      afkWarningLevel = 3;
+      showAfkNotice(`
+        🚨 Ultimo richiamo 3/3<br>
+        ${name}, se non rispondi il turno passa avanti.
+      `);
+    }
+
+    if (elapsed === AFK_TIMES[3]) {
+      showAfkNotice(`
+        ⏭️ Turno saltato<br>
+        ${name} risulta AFK.
+      `);
+
+      clearAfkTimer();
+      await nextPlayerTurn();
+    }
+  }, 1000);
+}
 function updateLeaderboard() {
   if (!leaderboardBody) return;
   leaderboardBody.innerHTML = "";
@@ -2126,15 +2245,17 @@ function renderPlayersMultiplayer(state) {
 
   const pObj = state.participants || {};
   const selObj = state.selectedPlayers || {};
+  const isPublicRoom = MP.roomId === "public";
 
   Object.entries(pObj).forEach(([uid, p]) => {
     if (
-  !p ||
-  !p.isRegistered ||
-  !String(p.nickname || "").trim()
-) {
-  return;
-}
+      !p ||
+      !p.isRegistered ||
+      !String(p.nickname || "").trim()
+    ) {
+      return;
+    }
+
     const li = document.createElement("li");
     li.style.cssText =
       "padding:4px 6px;border-bottom:1px solid #004466;display:flex;align-items:center;justify-content:space-between;";
@@ -2143,57 +2264,86 @@ function renderPlayersMultiplayer(state) {
     left.style.display = "flex";
     left.style.alignItems = "center";
 
-    const cb = document.createElement("input");
-    cb.type = "checkbox";
-    cb.checked = !!selObj[uid];
+    const isMe = uid === MP.uid;
+    const isSelected = !!selObj[uid];
+
+    if (isPublicRoom && !isMe) {
+      const status = document.createElement("span");
+      status.textContent = isSelected ? "🎮" : "🟢";
+      status.title = isSelected ? "In gioco" : "Online";
+      status.style.marginRight = "6px";
+      left.appendChild(status);
+    } else {
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = isSelected;
+
+      cb.addEventListener("change", async () => {
+        await mpAuthReady();
+
+        await mpWrite(`selectedPlayers/${uid}`, cb.checked);
+
+        const live = MP.state || state;
+        const nowSel = {
+          ...(live.selectedPlayers || {}),
+          [uid]: cb.checked
+        };
+
+        const uids = Object.keys(nowSel).filter((id) => nowSel[id]);
+
+        for (let i = uids.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [uids[i], uids[j]] = [uids[j], uids[i]];
+        }
+
+        await mpWrite("turnOrder", uids);
+        await mpWrite("currentTurnIndex", 0);
+
+        if (window.innerWidth <= 768) {
+          playerSelectionDiv?.classList.remove("mobile-open");
+        }
+      });
+
+      left.appendChild(cb);
+    }
 
     const label = document.createElement("label");
-    label.textContent = p.nickname || uid.slice(0, 6);
+    label.textContent =
+      isPublicRoom && isMe
+        ? `${p.nickname || uid.slice(0, 6)} (tu)`
+        : p.nickname || uid.slice(0, 6);
+
     label.style.marginLeft = "6px";
 
-    cb.addEventListener("change", async () => {
-      await mpAuthReady();
-      await mpWrite(`selectedPlayers/${uid}`, cb.checked);
+    if (isPublicRoom && !isMe) {
+      label.style.opacity = "0.85";
+      label.title = "Utente online - non selezionabile nella stanza pubblica";
+    }
 
-      const live = MP.state || state;
-      const nowSel = { ...(live.selectedPlayers || {}), [uid]: cb.checked };
-      const uids = Object.keys(nowSel).filter((id) => nowSel[id]);
-for (let i = uids.length - 1; i > 0; i--) {
-
-  const j =
-    Math.floor(
-      Math.random() * (i + 1)
-    );
-
-  [uids[i], uids[j]] =
-    [uids[j], uids[i]];
-}
-      await mpWrite("turnOrder", uids);
-      await mpWrite("currentTurnIndex", 0);
-      if (window.innerWidth <= 768) {
-  playerSelectionDiv?.classList.remove("mobile-open");
-}
-    });
-
-    left.appendChild(cb);
     left.appendChild(label);
     li.appendChild(left);
     playerList.appendChild(li);
   });
 
   const selectedNames = Object.keys(selObj)
-  .filter((uid) =>
-    selObj[uid] &&
-    pObj[uid]?.isRegistered &&
-    String(pObj[uid]?.nickname || "").trim()
-  )
-  .map((uid) => pObj[uid]?.nickname)
-  .filter(Boolean);
+    .filter((uid) =>
+      selObj[uid] &&
+      pObj[uid]?.isRegistered &&
+      String(pObj[uid]?.nickname || "").trim()
+    )
+    .map((uid) => pObj[uid]?.nickname)
+    .filter(Boolean);
 
   if (selectedPlayersDetails) {
-    selectedPlayersDetails.innerHTML = selectedNames.length
-      ? `<ul>${selectedNames.map((n) => `<li>${n}</li>`).join("")}</ul>`
-      : "Nessun giocatore selezionato.";
+    if (isPublicRoom) {
+      selectedPlayersDetails.innerHTML = selectedNames.length
+        ? `<ul>${selectedNames.map((n) => `<li>🎮 ${n}</li>`).join("")}</ul>`
+        : "Nessun esploratore in gioco.";
+    } else {
+      selectedPlayersDetails.innerHTML = selectedNames.length
+        ? `<ul>${selectedNames.map((n) => `<li>${n}</li>`).join("")}</ul>`
+        : "Nessun giocatore selezionato.";
+    }
   }
 
   if (closeRegisterBtn) closeRegisterBtn.disabled = participants.length === 0;
@@ -2378,6 +2528,7 @@ function showQuestion() {
 }
 
 function selectAnswer(selectedIndex) {
+  clearAfkTimer();
   if (quizIntervalId) clearInterval(quizIntervalId);
   quizIntervalId = null;
 
@@ -4175,6 +4326,11 @@ if (registerForm) {
     try {
       const nickname = registerForm.nickname.value.trim();
 
+const playerCode =
+  registerForm.playerCode?.value?.trim() ||
+  localStorage.getItem(`italiaQuestCode_${nickname.toLowerCase()}`) ||
+  "";
+
       if (!nickname) {
         if (registerMsg) {
           registerMsg.style.color = "#ff4444";
@@ -4184,7 +4340,12 @@ if (registerForm) {
       }
 
       await mpAuthReady();
-      await mpAddOrUpdateMe(nickname);
+     await mpAddOrUpdateMe(nickname, playerCode);
+
+localStorage.setItem(
+  `italiaQuestCode_${nickname.toLowerCase()}`,
+  playerCode
+);
 
       if (registerMsg) {
         registerMsg.style.color = "#22cc88";
@@ -4209,13 +4370,25 @@ if (closeRegisterBtn) {
 
     const panel = document.getElementById("admin-control-panel");
 
-    if (!panel) {
-      console.warn("🛡️ Centro Controllo non ancora disponibile.");
-      return;
-    }
+  if (!panel) {
+  console.warn("Centro Controllo non disponibile o admin non autenticato");
+  return;
+}
 
-    panel.style.display =
-      panel.style.display === "none" ? "block" : "none";
+ const isHidden =
+  panel.style.display === "none" ||
+  getComputedStyle(panel).display === "none";
+
+panel.style.display = isHidden ? "block" : "none";
+
+if (isHidden) {
+  panel.style.position = "fixed";
+  panel.style.top = "80px";
+  panel.style.right = "10px";
+  panel.style.left = "auto";
+  panel.style.bottom = "auto";
+  panel.style.zIndex = "999999";
+}
 
   });
 
