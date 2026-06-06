@@ -9,6 +9,7 @@ import {
   update,
   runTransaction,
   serverTimestamp,
+  onDisconnect,
 } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js";
 
 import {
@@ -203,15 +204,39 @@ async function ensureMeExists() {
       isRegistered: false
     });
   } else {
-    await update(pRef, {
-      lastSeen: serverTimestamp()
-    });
+  await update(pRef, {
+    lastSeen: serverTimestamp()
+  });
+
+  const data = snap.val() || {};
+
+  if (data.isRegistered && data.nickname) {
+    await mpUpdateActivePresence(data.nickname);
   }
+}
 }
 /**
  * mpWrite(path, value)
  * - scrive un valore (se value è null -> rimuove chiave)
  */
+async function mpUpdateActivePresence(nickname = "") {
+  await mpAuthReady();
+
+  if (!MP.roomId || !MP.uid) return;
+
+  const activeUserRef =
+    ref(db, `activeRooms/${MP.roomId}/users/${MP.uid}`);
+
+  await update(activeUserRef, {
+    uid: MP.uid,
+    nickname: String(nickname || "Guest").trim().slice(0, 20),
+    roomId: MP.roomId,
+    online: true,
+    lastSeen: serverTimestamp()
+  });
+
+  onDisconnect(activeUserRef).remove();
+}
 export async function mpWrite(path, value) {
   if (!path) throw new Error("mpWrite: path mancante");
 
@@ -253,8 +278,23 @@ export async function mpAddOrUpdateMe(nickname) {
   isRegistered: true,
   lastSeen: serverTimestamp(),
 });
-}
 
+
+if (MP.roomId && MP.uid) {
+  const activeUserRef =
+    ref(db, `activeRooms/${MP.roomId}/users/${MP.uid}`);
+
+  await update(activeUserRef, {
+    uid: MP.uid,
+    nickname: String(nickname).trim().slice(0, 20),
+    roomId: MP.roomId,
+    online: true,
+    lastSeen: serverTimestamp()
+  });
+
+  onDisconnect(activeUserRef).remove();
+}
+}
 /**
  * mpInc(uid, field, delta=1)
  */
@@ -298,4 +338,22 @@ export async function mpWriteState(path, value) {
 export async function mpWriteIfMissing(path, value) {
   const s = await get(roomRef(path));
   if (!s.exists()) await set(roomRef(path), value);
+}
+
+
+export function mpListenActiveRooms(callback) {
+
+
+  return onValue(
+    ref(db, "activeRooms"),
+    (snap) => {
+
+      callback(snap.val() || {});
+    },
+    (err) => {
+
+      console.error("🔥 Errore activeRooms:", err);
+
+    }
+  );
 }
