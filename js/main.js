@@ -4376,7 +4376,13 @@ if (!panel && window.createAdminControlPanel) {
   window.createAdminControlPanel();
   panel = document.getElementById("admin-control-panel");
 }
+if (window.updateAdminControlPanel) {
+  window.updateAdminControlPanel();
+}
 
+if (window.startActiveRoomsMonitor) {
+  window.startActiveRoomsMonitor();
+}
 if (!panel) {
   alert("Centro Controllo non trovato");
   return;
