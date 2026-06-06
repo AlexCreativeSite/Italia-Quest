@@ -1413,7 +1413,7 @@ box-shadow:
   <ul id="player-list"></ul>
 
   <div id="players-info">
-    <p><strong>⭐ Squadra Attiva</strong></p>
+    <p><strong>🎮 Esploratori in Gioco</strong></p>
 
     <div id="selected-players-details">
       Nessun esploratore selezionato.
@@ -1475,19 +1475,46 @@ box-shadow:
     <div id="quiz-time-msg" aria-live="polite" style="margin-top:0.5rem; font-size:0.9rem;"></div>
   </div>
 
-  <form id="register-form">
-    <label for="nickname">
-👤 Nome Esploratore:
-</label>
-    <input type="text" id="nickname" name="nickname" required minlength="3" maxlength="20"
-           placeholder="Nickname" autocomplete="off" />
-    <button type="submit">
-🚀 Inizia l'Avventura
-</button>
-<button id="how-to-play-btn" class="info-btn">
-  🏆Guida dell'esploratore
-</button>
-  </form>
+ <form id="register-form">
+
+  <label for="nickname">
+    👤 Nome Esploratore:
+  </label>
+
+  <input
+    type="text"
+    id="nickname"
+    name="nickname"
+    required
+    minlength="3"
+    maxlength="20"
+    placeholder="Nickname"
+    autocomplete="off"
+  />
+
+  <label for="playerCode">
+    🔐 Codice Personale:
+  </label>
+
+  <input
+    type="password"
+    id="playerCode"
+    name="playerCode"
+    minlength="4"
+    maxlength="20"
+    placeholder="Inserisci o crea il tuo codice"
+    autocomplete="off"
+  />
+
+  <button type="submit">
+    🚀 Inizia l'Avventura
+  </button>
+
+  <button id="how-to-play-btn" class="info-btn">
+    🏆 Guida dell'esploratore
+  </button>
+
+</form>
 
   <div id="register-msg" aria-live="polite"></div>
 
@@ -1706,7 +1733,7 @@ box-shadow:
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 </script>
-<script type="module" src="./js/main.js?v=20260604-2"></script>
+<script type="module" src="./js/main.js?v=20260604-1"></script>
 <script type="module" src="./js/admin-control.js?v=1"></script>
 <script type="module" src="./js/chatItalia.js"></script>
 
