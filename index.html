@@ -1331,6 +1331,21 @@ box-shadow:
     filter: drop-shadow(0 0 20px #b06cff);
   }
 }
+@media (max-width: 768px) {
+  #admin-control-panel {
+    display: block;
+    position: fixed !important;
+    top: 80px !important;
+    right: 10px !important;
+    left: auto !important;
+    bottom: auto !important;
+    width: 260px !important;
+    max-width: calc(100vw - 20px) !important;
+    max-height: 70vh !important;
+    overflow-y: auto !important;
+    z-index: 999999 !important;
+  }
+}
   </style>
 
   <!-- Chat CSS -->
@@ -1691,8 +1706,8 @@ box-shadow:
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 </script>
-<script type="module" src="./js/main.js?v=20260604-2"></script>
-<script type="module" src="./js/admin-control.js?v=2"></script>
+<script type="module" src="./js/main.js?v=20260604-1"></script>
+<script type="module" src="./js/admin-control.js?v=1"></script>
 <script type="module" src="./js/chatItalia.js"></script>
 
 </body>
