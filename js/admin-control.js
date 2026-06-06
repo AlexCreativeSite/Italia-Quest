@@ -60,6 +60,7 @@ function createAdminControlPanel() {
 
   document.body.appendChild(panel);
 }
+window.createAdminControlPanel = createAdminControlPanel;
 
 function updateAdminControlPanel() {
   const api = window.ItaliaQuestAdmin;
