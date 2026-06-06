@@ -4366,31 +4366,39 @@ if (closeRegisterBtn) {
   closeRegisterBtn.style.display =
     localStorage.getItem("localAdmin") === "true" ? "" : "none";
 
-  closeRegisterBtn.addEventListener("click", () => {
+  closeRegisterBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
 
-    const panel = document.getElementById("admin-control-panel");
+  const panel = document.getElementById("admin-control-panel");
 
   if (!panel) {
-  console.warn("Centro Controllo non disponibile o admin non autenticato");
-  return;
-}
+    alert("Centro Controllo non trovato");
+    return;
+  }
 
- const isHidden =
-  panel.style.display === "none" ||
-  getComputedStyle(panel).display === "none";
+  const isHidden =
+    panel.style.display === "none" ||
+    getComputedStyle(panel).display === "none";
 
-panel.style.display = isHidden ? "block" : "none";
-
-if (isHidden) {
-  panel.style.position = "fixed";
-  panel.style.top = "80px";
-  panel.style.right = "10px";
-  panel.style.left = "auto";
-  panel.style.bottom = "auto";
-  panel.style.zIndex = "999999";
-}
-
-  });
+  if (isHidden) {
+    panel.style.display = "block";
+    panel.style.position = "fixed";
+    panel.style.top = "80px";
+    panel.style.right = "8px";
+    panel.style.left = "auto";
+    panel.style.bottom = "auto";
+    panel.style.width = "260px";
+    panel.style.maxWidth = "calc(100vw - 16px)";
+    panel.style.maxHeight = "70vh";
+    panel.style.overflowY = "auto";
+    panel.style.zIndex = "9999999";
+    panel.style.transform = "none";
+    panel.scrollTop = 0;
+  } else {
+    panel.style.display = "none";
+  }
+});
 
 }
 
