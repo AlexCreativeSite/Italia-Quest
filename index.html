@@ -398,16 +398,27 @@ rgba(20,25,60,.95)
 
   font-size: 0.78rem;
 }
-    #close-register-btn {
-      background:#c0392b;
-      color:white;
-      border:none;
-      border-radius:6px;
-      padding:0.5rem 1rem;
-      margin-top:1rem;
-      cursor:pointer;
-      width:100%;
-    }
+
+/* Pulsante Sala Regia admin dentro pannello Community */
+#close-register-btn{
+    width:36px;
+    height:36px;
+    border-radius:50%;
+    border:none;
+    cursor:pointer;
+
+    margin-left:8px;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:18px;
+
+    background:rgba(0,246,255,.15);
+
+    box-shadow:
+      0 0 12px rgba(0,246,255,.35);
+}
     #close-register-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
    #open-register-btn {
@@ -997,7 +1008,7 @@ box-shadow:
   #quiz-flash-container{
     position:absolute !important;
     bottom:2px !important;
-    left:42% !important;
+    left:41% !important;
     transform:translateX(-50%) !important;
     width:auto !important;
   }
@@ -1165,19 +1176,23 @@ box-shadow:
 }
 
 #register-modal.mobile-mini .panel-toggle-btn {
-  width: 38px !important;
-  height: 38px !important;
-  font-size: 1rem !important;
-}
-/* MOBILE */
-@media (max-width: 1100px) {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
 
-  /* Nasconde il pulsante rosso su telefono */
-  #close-register-btn {
-    display: none !important;
-  }
+  width:42px !important;
+  height:42px !important;
 
+  position:absolute !important;
+  right:4px !important;
+  bottom:4px !important;
+
+  border-radius:14px !important;
+  font-size:20px !important;
+
+  z-index:10 !important;
 }
+
 @media (max-width: 768px) {
 
   #toggle-left-panel {
@@ -1261,6 +1276,59 @@ box-shadow:
 
     background: rgba(0,0,0,.55) !important;
     z-index: 20 !important;
+  }
+}
+.iq-loading-panel {
+  width: 90%;
+  max-width: 900px;
+  margin: 8px auto 12px auto;
+  z-index: 5;
+  display: none;
+}
+
+.iq-loading-panel.active {
+  display: block;
+}
+
+.iq-loading-card {
+  padding: 14px 18px;
+  border-radius: 18px;
+  text-align: center;
+  background: rgba(5,18,40,.86);
+  border: 1px solid rgba(0,246,255,.35);
+  box-shadow:
+    0 0 20px rgba(0,246,255,.22),
+    0 0 35px rgba(176,108,255,.18);
+  color: #e9f7ff;
+}
+
+.iq-spinner {
+  font-size: 2rem;
+  animation: iqPulse 1.4s infinite ease-in-out;
+}
+
+#iq-loading-title {
+  font-weight: 900;
+  font-size: 1.1rem;
+  margin-top: 4px;
+  color: #ffffff;
+  text-shadow: 0 0 12px #00f6ff;
+}
+
+#iq-loading-text {
+  margin-top: 5px;
+  font-size: .9rem;
+  color: #bfefff;
+}
+
+@keyframes iqPulse {
+  0%,100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 8px #00f6ff);
+  }
+  50% {
+    transform: scale(1.18);
+    filter: drop-shadow(0 0 20px #b06cff);
   }
 }
   </style>
@@ -1421,10 +1489,25 @@ box-shadow:
 </button>
   </div>
 </div>
-  <button id="close-register-btn">Nascondi Community</button>
+ <button
+  id="close-register-btn"
+  title="Sala Regia">
+  🛡️
+</button>
 </div>
+<button id="open-register-btn">
+    Apri Registrazione
+</button>
 
-<button id="open-register-btn">Apri Registrazione</button>
+<div id="iq-loading-panel" class="iq-loading-panel active">
+  <div class="iq-loading-card">
+    <div class="iq-spinner">🌍</div>
+    <div id="iq-loading-title">Italia Quest si sta preparando...</div>
+    <div id="iq-loading-text">
+      Connessione agli archivi, caricamento domande e giocatori.
+    </div>
+  </div>
+</div>
 
 <div id="map-container">
   <img src="https://i.postimg.cc/dtmzm3F8/Senza-titolo-4000-x-6000-px.png" alt="Mappa Italia" />
@@ -1609,6 +1692,7 @@ box-shadow:
     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 </script>
 <script type="module" src="./js/main.js?v=20260604-1"></script>
+<script type="module" src="./js/admin-control.js?v=1"></script>
 <script type="module" src="./js/chatItalia.js"></script>
 
 </body>
