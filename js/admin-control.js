@@ -61,7 +61,8 @@ function createAdminControlPanel() {
   document.body.appendChild(panel);
 }
 window.createAdminControlPanel = createAdminControlPanel;
-
+window.updateAdminControlPanel = updateAdminControlPanel;
+window.startActiveRoomsMonitor = startActiveRoomsMonitor;
 function updateAdminControlPanel() {
   const api = window.ItaliaQuestAdmin;
   if (!api) return;
