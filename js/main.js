@@ -4370,12 +4370,17 @@ if (closeRegisterBtn) {
   e.preventDefault();
   e.stopPropagation();
 
-  const panel = document.getElementById("admin-control-panel");
+  let panel = document.getElementById("admin-control-panel");
 
-  if (!panel) {
-    alert("Centro Controllo non trovato");
-    return;
-  }
+if (!panel && window.createAdminControlPanel) {
+  window.createAdminControlPanel();
+  panel = document.getElementById("admin-control-panel");
+}
+
+if (!panel) {
+  alert("Centro Controllo non trovato");
+  return;
+}
 
   const isHidden =
     panel.style.display === "none" ||
