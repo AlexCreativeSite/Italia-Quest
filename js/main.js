@@ -159,8 +159,14 @@ const leaderboardBody = document.getElementById("leaderboard-body");
 const adminStatus = document.getElementById("admin-status");
 const adminLoginBtn = document.getElementById("admin-login-btn");
 
+const logoutUserBtn =
+  document.getElementById("logout-user-btn");
+
 const playerList = document.getElementById("player-list");
 const selectedPlayersDetails = document.getElementById("selected-players-details");
+
+const afkPlayersDetails =
+  document.getElementById("afk-players-details");
 
 const resetSelectionBtn = document.getElementById("reset-selection-btn");
 
@@ -2129,14 +2135,34 @@ if (isPublicRoom || !Array.isArray(turnOrder) || turnOrder.length <= 1) {
     }
 
     if (elapsed === AFK_TIMES[3]) {
-      showAfkNotice(`
-        ⏭️ Turno saltato<br>
-        ${name} risulta AFK.
-      `);
+  showAfkNotice(`
+    🚫 Giocatore AFK<br>
+    ${name} è stato deselezionato.
+  `);
 
-      clearAfkTimer();
-      await nextPlayerTurn();
-    }
+  const afkUid = afkActiveUid;
+
+  clearAfkTimer();
+
+  if (!afkUid) return;
+
+  const liveSelected =
+    MP.state?.selectedPlayers || {};
+
+  await mpWrite(`selectedPlayers/${afkUid}`, null);
+  await mpWrite(`afkPlayers/${afkUid}`, true);
+
+
+
+  const remainingUids = Object.keys(liveSelected)
+    .filter((uid) =>
+      uid !== afkUid &&
+      liveSelected[uid]
+    );
+
+  await mpWrite("turnOrder", remainingUids);
+  await mpWrite("currentTurnIndex", 0);
+}
   }, 1000);
 }
 function updateLeaderboard() {
@@ -2279,8 +2305,9 @@ function renderPlayersMultiplayer(state) {
   if (!playerList) return;
   playerList.innerHTML = "";
 
-  const pObj = state.participants || {};
-  const selObj = state.selectedPlayers || {};
+const pObj = state.participants || {};
+const selObj = state.selectedPlayers || {};
+const afkObj = state.afkPlayers || {};
   const isPublicRoom = MP.roomId === "public";
 
   Object.entries(pObj).forEach(([uid, p]) => {
@@ -2318,6 +2345,9 @@ function renderPlayersMultiplayer(state) {
         await mpAuthReady();
 
         await mpWrite(`selectedPlayers/${uid}`, cb.checked);
+        if (cb.checked) {
+  await mpWrite(`afkPlayers/${uid}`, null);
+}
 setTimeout(() => {
   if (window.matchMedia("(max-width: 768px)").matches) {
     closeLeftPanel();
@@ -2377,20 +2407,42 @@ setTimeout(() => {
     .filter(Boolean);
 
   if (selectedPlayersDetails) {
-    if (isPublicRoom) {
-      selectedPlayersDetails.innerHTML = selectedNames.length
-        ? `<ul>${selectedNames.map((n) => `<li>🎮 ${n}</li>`).join("")}</ul>`
-        : "Nessun esploratore in gioco.";
-    } else {
-      selectedPlayersDetails.innerHTML = selectedNames.length
-        ? `<ul>${selectedNames.map((n) => `<li>${n}</li>`).join("")}</ul>`
-        : "Nessun giocatore selezionato.";
-    }
+  if (isPublicRoom) {
+    selectedPlayersDetails.innerHTML = selectedNames.length
+      ? `<ul>${selectedNames.map((n) => `<li>🟢 ${n}</li>`).join("")}</ul>`
+      : "Nessun esploratore in gioco.";
+  } else {
+    const currentUid = getCurrentTurnUid();
+    const currentName =
+      currentUid && pObj[currentUid]?.nickname
+        ? pObj[currentUid].nickname
+        : "";
+
+    selectedPlayersDetails.innerHTML = selectedNames.length
+      ? `<ul>${
+          selectedNames
+            .map((n) => `<li>${n === currentName ? "🟢" : "🟡"} ${n}</li>`)
+            .join("")
+        }</ul>`
+      : "Nessun giocatore selezionato.";
   }
-
-  if (closeRegisterBtn) closeRegisterBtn.disabled = participants.length === 0;
 }
+if (afkPlayersDetails) {
+  const afkNames = Object.keys(afkObj)
+    .filter((uid) =>
+      afkObj[uid] &&
+      pObj[uid]?.isRegistered &&
+      String(pObj[uid]?.nickname || "").trim()
+    )
+    .map((uid) => pObj[uid]?.nickname)
+    .filter(Boolean);
 
+  afkPlayersDetails.innerHTML = afkNames.length
+    ? `<ul>${afkNames.map((n) => `<li>😴 ${n}</li>`).join("")}</ul>`
+    : "Nessun esploratore AFK.";
+}
+if (closeRegisterBtn) closeRegisterBtn.disabled = participants.length === 0;
+}
 /* =========================
    Game logic
 ========================= */
@@ -4400,6 +4452,63 @@ localStorage.setItem(
     } finally {
       registeringLock = false;
     }
+  });
+}
+
+if (logoutUserBtn) {
+  logoutUserBtn.addEventListener("click", async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const ok = await showConfirm(
+      "Vuoi uscire da Italia Quest?\n\nIl tuo nickname resterà protetto dal codice personale."
+    );
+
+    if (!ok) return;
+
+    await mpAuthReady();
+
+    const uid = MP.uid;
+
+    if (!uid) {
+      await showAlert("Nessun utente attivo.");
+      return;
+    }
+
+    await mpWrite(`selectedPlayers/${uid}`, null);
+    await mpWrite(`afkPlayers/${uid}`, null);
+    await mpWrite(`participants/${uid}`, null);
+
+    const liveTurnOrder =
+      Array.isArray(MP.state?.turnOrder)
+        ? MP.state.turnOrder
+        : [];
+
+    const newTurnOrder =
+      liveTurnOrder.filter((id) => id !== uid);
+
+    await mpWrite("turnOrder", newTurnOrder);
+    await mpWrite("currentTurnIndex", 0);
+
+    if (registerForm.nickname) {
+      registerForm.nickname.value = "";
+    }
+
+    if (registerForm.playerCode) {
+      registerForm.playerCode.value = "";
+    }
+
+    if (registerMsg) {
+      registerMsg.style.color = "#ffd166";
+      registerMsg.textContent =
+        "Logout effettuato. Puoi rientrare con nickname e codice.";
+
+      setTimeout(() => {
+        registerMsg.textContent = "";
+      }, 3000);
+    }
+
+    await showAlert("🚪 Logout effettuato.");
   });
 }
 
