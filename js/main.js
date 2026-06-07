@@ -190,7 +190,7 @@ function closeLeftPanel() {
   playerSelectionDiv.style.setProperty("opacity", "0", "important");
   playerSelectionDiv.style.setProperty("pointer-events", "none", "important");
 }
-``
+
 
 const quizModal = document.getElementById("quiz-modal");
 const quizContent = document.getElementById("quiz-content");
@@ -2229,8 +2229,8 @@ if (toggleLeftPanelBtn && playerSelectionDiv) {
     } else {
       closeLeftPanel();
     }
-  };
-}
+  
+
 function applyRemoteStateToUI(state) {
   if (!state) return;
 
