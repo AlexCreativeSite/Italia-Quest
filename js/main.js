@@ -2330,14 +2330,24 @@ const afkObj = state.afkPlayers || {};
     const isMe = uid === MP.uid;
     const isSelected = !!selObj[uid];
 
-    if (isPublicRoom && !isMe) {
-      const status = document.createElement("span");
-      status.textContent = isSelected ? "🟢" : "🟡";
-      status.title = isSelected ? "In gioco" : "Presente";
-      status.style.marginRight = "6px";
-      left.appendChild(status);
-    } else {
-      const cb = document.createElement("input");
+    if (!isMe) {
+  const status = document.createElement("span");
+
+  status.textContent =
+    afkObj[uid]
+      ? "😴"
+      : (isSelected ? "🟢" : "🟡");
+
+  status.title =
+    afkObj[uid]
+      ? "AFK"
+      : (isSelected ? "In gioco" : "Presente");
+
+  status.style.marginRight = "6px";
+  left.appendChild(status);
+
+} else {
+  const cb = document.createElement("input");
       cb.type = "checkbox";
       cb.checked = isSelected;
 
