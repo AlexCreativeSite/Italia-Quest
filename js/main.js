@@ -2058,6 +2058,13 @@ function startAfkTimerForCurrentTurn() {
   const uid = getCurrentTurnUid();
   if (!uid) return;
 
+const isPublicRoom = MP.roomId === "public";
+
+if (isPublicRoom || !Array.isArray(turnOrder) || turnOrder.length <= 1) {
+  clearAfkTimer();
+  return;
+}
+
   const player = MP.state?.participants?.[uid];
   const name = player?.nickname || "Giocatore";
 
