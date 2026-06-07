@@ -2318,7 +2318,9 @@ function renderPlayersMultiplayer(state) {
         await mpAuthReady();
 
         await mpWrite(`selectedPlayers/${uid}`, cb.checked);
-
+if (window.innerWidth <= 768) {
+  closeLeftPanel();
+}
         const live = MP.state || state;
         const nowSel = {
           ...(live.selectedPlayers || {}),
