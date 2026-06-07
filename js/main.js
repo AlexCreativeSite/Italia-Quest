@@ -169,6 +169,29 @@ const resetNickBtn =
 
 const playerSelectionDiv = document.getElementById("player-selection");
 
+function openLeftPanel() {
+  if (!playerSelectionDiv) return;
+
+  playerSelectionDiv.classList.add("mobile-open");
+  playerSelectionDiv.classList.remove("panel-closed");
+
+  playerSelectionDiv.style.setProperty("transform", "translateX(0)", "important");
+  playerSelectionDiv.style.setProperty("opacity", "1", "important");
+  playerSelectionDiv.style.setProperty("pointer-events", "auto", "important");
+}
+
+function closeLeftPanel() {
+  if (!playerSelectionDiv) return;
+
+  playerSelectionDiv.classList.remove("mobile-open");
+  playerSelectionDiv.classList.add("panel-closed");
+
+  playerSelectionDiv.style.setProperty("transform", "translateX(-120%)", "important");
+  playerSelectionDiv.style.setProperty("opacity", "0", "important");
+  playerSelectionDiv.style.setProperty("pointer-events", "none", "important");
+}
+``
+
 const quizModal = document.getElementById("quiz-modal");
 const quizContent = document.getElementById("quiz-content");
 const quizFeedback = document.getElementById("quiz-feedback");
@@ -2189,6 +2212,14 @@ if (toggleLeftPanelBtn && playerSelectionDiv) {
     e.preventDefault();
     e.stopPropagation();
 
+    if (playerSelectionDiv.classList.contains("mobile-open")) {
+      closeLeftPanel();
+    } else {
+      openLeftPanel();
+    }
+  };
+}
+
     const isOpening =
       !playerSelectionDiv.classList.contains("mobile-open");
 
@@ -2196,8 +2227,7 @@ if (toggleLeftPanelBtn && playerSelectionDiv) {
       playerSelectionDiv.classList.add("mobile-open");
       playerSelectionDiv.classList.remove("panel-closed");
     } else {
-      playerSelectionDiv.classList.remove("mobile-open");
-      playerSelectionDiv.classList.add("panel-closed");
+      closeLeftPanel();
     }
   };
 }
