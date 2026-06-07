@@ -2189,7 +2189,16 @@ if (toggleLeftPanelBtn && playerSelectionDiv) {
     e.preventDefault();
     e.stopPropagation();
 
-    playerSelectionDiv.classList.toggle("mobile-open");
+    const isOpening =
+      !playerSelectionDiv.classList.contains("mobile-open");
+
+    if (isOpening) {
+      playerSelectionDiv.classList.add("mobile-open");
+      playerSelectionDiv.classList.remove("panel-closed");
+    } else {
+      playerSelectionDiv.classList.remove("mobile-open");
+      playerSelectionDiv.classList.add("panel-closed");
+    }
   };
 }
 function applyRemoteStateToUI(state) {
@@ -2306,9 +2315,10 @@ function renderPlayersMultiplayer(state) {
         await mpWrite("turnOrder", uids);
         await mpWrite("currentTurnIndex", 0);
 
-        if (window.innerWidth <= 768) {
-          playerSelectionDiv?.classList.remove("mobile-open");
-        }
+       if (window.innerWidth <= 768 && playerSelectionDiv) {
+  playerSelectionDiv.classList.remove("mobile-open");
+  playerSelectionDiv.classList.add("panel-closed");
+}
       });
 
       left.appendChild(cb);
