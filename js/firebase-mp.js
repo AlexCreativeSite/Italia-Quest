@@ -268,32 +268,75 @@ export async function mpUpdate(path, obj) {
 /**
  * mpAddOrUpdateMe(nickname)
  */
-export async function mpAddOrUpdateMe(nickname) {
+/**
+ * mpAddOrUpdateMe(nickname, playerCode)
+ * - registra nickname globale protetto da codice personale
+ */
+export async function mpAddOrUpdateMe(nickname, playerCode = "") {
   await mpAuthReady();
   if (!MP.uid) throw new Error("uid non pronto");
 
+  const cleanNickname =
+    String(nickname || "").trim().slice(0, 20);
+
+  const cleanCode =
+    String(playerCode || "").trim();
+
+  if (!cleanNickname) {
+    throw new Error("Nickname mancante");
+  }
+
+  if (!cleanCode || cleanCode.length < 4) {
+    throw new Error("Inserisci un codice personale di almeno 4 caratteri");
+  }
+
+  const nicknameKey =
+    cleanNickname
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, "");
+
+  if (!nicknameKey) {
+    throw new Error("Nickname non valido");
+  }
+
+const registryRef =
+  ref(db, `rooms/public/nickRegistry/${nicknameKey}`);
+
+  const registrySnap =
+    await get(registryRef);
+
+  if (!registrySnap.exists()) {
+    await set(registryRef, {
+      nickname: cleanNickname,
+      code: cleanCode,
+      ownerUid: MP.uid,
+      createdAt: serverTimestamp(),
+      lastSeen: serverTimestamp()
+    });
+  } else {
+    const data = registrySnap.val() || {};
+
+    if (String(data.code || "") !== cleanCode) {
+      throw new Error(
+        `Il nickname "${cleanNickname}" è già registrato con un altro codice.`
+      );
+    }
+
+    await update(registryRef, {
+      lastSeen: serverTimestamp(),
+      lastUid: MP.uid
+    });
+  }
+
   await update(roomRef(`participants/${MP.uid}`), {
-  uid: MP.uid,
-  nickname: String(nickname).trim().slice(0, 20),
-  isRegistered: true,
-  lastSeen: serverTimestamp(),
-});
-
-
-if (MP.roomId && MP.uid) {
-  const activeUserRef =
-    ref(db, `activeRooms/${MP.roomId}/users/${MP.uid}`);
-
-  await update(activeUserRef, {
     uid: MP.uid,
-    nickname: String(nickname).trim().slice(0, 20),
-    roomId: MP.roomId,
-    online: true,
-    lastSeen: serverTimestamp()
+    nickname: cleanNickname,
+    nicknameKey,
+    isRegistered: true,
+    lastSeen: serverTimestamp(),
   });
 
-  onDisconnect(activeUserRef).remove();
-}
+  await mpUpdateActivePresence(cleanNickname);
 }
 /**
  * mpInc(uid, field, delta=1)
