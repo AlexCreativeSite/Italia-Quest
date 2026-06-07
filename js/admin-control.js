@@ -26,6 +26,9 @@ function createAdminControlPanel() {
 <div style="font-weight:900;">👥 Utenti Online</div>
 <div id="ac-users">Caricamento...</div>
 
+<div style="font-weight:900;margin-top:8px;">😴 Esploratori AFK</div>
+<div id="ac-afk">Nessuno</div>
+
 <div style="font-weight:900;margin-top:8px;">🎮 Turno</div>
 <div id="ac-turn">...</div>
 
@@ -79,13 +82,17 @@ const quizData =
   window.quizData ||
   {};
 
-  const players = Object.keys(state.participants || {}).length;
+  const players = Object.values(state.participants || {})
+  .filter(p => p && p.isRegistered && String(p.nickname || "").trim())
+  .length;
   const selected = Object.keys(state.selectedPlayers || {}).filter(
     (id) => state.selectedPlayers[id]
   ).length;
   const regions = Object.keys(state.completedRegions || {}).length;
   const usersEl = document.getElementById("ac-users");
 const turnEl = document.getElementById("ac-turn");
+
+const afkEl = document.getElementById("ac-afk");
 
 const participantsObj = state.participants || {};
 const users = Object.values(participantsObj)
@@ -97,7 +104,18 @@ if (usersEl) {
     ? users.map(name => `🟢 ${name}`).join("<br>")
     : "<i>Nessun utente registrato</i>";
 }
+const afkObj = state.afkPlayers || {};
 
+const afkUsers = Object.keys(afkObj)
+  .filter(uid => afkObj[uid])
+  .map(uid => participantsObj[uid]?.nickname)
+  .filter(Boolean);
+
+if (afkEl) {
+  afkEl.innerHTML = afkUsers.length
+    ? afkUsers.map(name => `😴 ${name}`).join("<br>")
+    : "<i>Nessun AFK</i>";
+}
 const turnOrder = Array.isArray(state.turnOrder) ? state.turnOrder : [];
 const currentTurnIndex = Number(state.currentTurnIndex || 0);
 const currentUid = turnOrder[currentTurnIndex];
