@@ -2219,16 +2219,6 @@ if (toggleLeftPanelBtn && playerSelectionDiv) {
     }
   };
 }
-
-    const isOpening =
-      !playerSelectionDiv.classList.contains("mobile-open");
-
-    if (isOpening) {
-      playerSelectionDiv.classList.add("mobile-open");
-      playerSelectionDiv.classList.remove("panel-closed");
-    } else {
-      closeLeftPanel();
-    }
   
 
 function applyRemoteStateToUI(state) {
