@@ -2397,7 +2397,7 @@ setTimeout(() => {
 
     label.style.marginLeft = "6px";
 
-    if (isPublicRoom && !isMe) {
+    if (!isMe) {
       label.style.opacity = "0.85";
       label.title = "Utente online - non selezionabile nella stanza pubblica";
     }
