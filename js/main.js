@@ -2318,9 +2318,12 @@ function renderPlayersMultiplayer(state) {
         await mpAuthReady();
 
         await mpWrite(`selectedPlayers/${uid}`, cb.checked);
-if (window.innerWidth <= 768) {
-  closeLeftPanel();
-}
+setTimeout(() => {
+  if (window.matchMedia("(max-width: 768px)").matches) {
+    closeLeftPanel();
+  }
+}, 600);
+
         const live = MP.state || state;
         const nowSel = {
           ...(live.selectedPlayers || {}),
