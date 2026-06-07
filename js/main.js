@@ -2305,8 +2305,8 @@ function renderPlayersMultiplayer(state) {
 
     if (isPublicRoom && !isMe) {
       const status = document.createElement("span");
-      status.textContent = isSelected ? "🎮" : "🟢";
-      status.title = isSelected ? "In gioco" : "Online";
+      status.textContent = isSelected ? "🟢" : "🟡";
+      status.title = isSelected ? "In gioco" : "Presente";
       status.style.marginRight = "6px";
       left.appendChild(status);
     } else {
@@ -4517,6 +4517,26 @@ if (svg) {
       const regionName = group.dataset.regionName;
 
       if (!regionCode) return;
+
+      const isPrivateRoom = MP.roomId !== "public";
+      const selectedUids = Object.keys(MP.state?.selectedPlayers || {})
+        .filter((uid) => MP.state.selectedPlayers[uid]);
+
+      if (isPrivateRoom && selectedUids.length > 1) {
+        const currentUid = getCurrentTurnUid();
+
+        if (MP.uid !== currentUid) {
+          const currentName =
+            MP.state?.participants?.[currentUid]?.nickname ||
+            "il giocatore di turno";
+
+          await showAlert(
+            `⛔ Non è il tuo turno.\n\nAdesso deve giocare ${currentName}.`
+          );
+
+          return;
+        }
+      }
 
       const alreadyDone =
         !!MP.state?.completedRegions?.[regionCode];
