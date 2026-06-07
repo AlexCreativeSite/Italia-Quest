@@ -95,16 +95,32 @@ const turnEl = document.getElementById("ac-turn");
 const afkEl = document.getElementById("ac-afk");
 
 const participantsObj = state.participants || {};
-const users = Object.values(participantsObj)
-  .filter(p => p && p.isRegistered && String(p.nickname || "").trim())
-  .map(p => p.nickname);
+const selectedObj = state.selectedPlayers || {};
+const afkObj = state.afkPlayers || {};
+
+const users = Object.entries(participantsObj)
+  .filter(([uid, p]) =>
+    p &&
+    p.isRegistered &&
+    String(p.nickname || "").trim()
+  )
+  .map(([uid, p]) => {
+    const name = p.nickname;
+
+    const icon = afkObj[uid]
+      ? "😴"
+      : selectedObj[uid]
+        ? "🟢"
+        : "🟡";
+
+    return `${icon} ${name}`;
+  });
 
 if (usersEl) {
   usersEl.innerHTML = users.length
-    ? users.map(name => `🟢 ${name}`).join("<br>")
+    ? users.join("<br>")
     : "<i>Nessun utente registrato</i>";
 }
-const afkObj = state.afkPlayers || {};
 
 const afkUsers = Object.keys(afkObj)
   .filter(uid => afkObj[uid])
