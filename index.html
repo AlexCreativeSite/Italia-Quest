@@ -590,7 +590,16 @@ rgba(20,25,60,.95)
       overflow-y: auto;
       max-height: 200px;
     }
-    #selected-players-details li { list-style: disc; margin-left: 1rem; }
+   #selected-players-details ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+#selected-players-details li {
+  list-style: none;
+  margin: 4px 0;
+}
 
     #toggle-players-btn {
       position: fixed;
@@ -1412,13 +1421,19 @@ box-shadow:
 
   <ul id="player-list"></ul>
 
-  <div id="players-info">
-    <p><strong>⭐ Esploratori Attivi</strong></p>
+<div id="players-info">
+  <p><strong>⭐ Esploratori Attivi</strong></p>
 
-    <div id="selected-players-details">
-      Nessun esploratore selezionato.
-    </div>
+  <div id="selected-players-details">
+    Nessun esploratore selezionato.
   </div>
+
+  <p style="margin-top:10px;"><strong>😴 Esploratori AFK</strong></p>
+
+  <div id="afk-players-details">
+    Nessun esploratore AFK.
+  </div>
+</div>
 
   <button id="reset-selection-btn">
     🔄 Reset Squadra
@@ -1509,6 +1524,10 @@ box-shadow:
   <button type="submit">
     🚀 Inizia l'Avventura
   </button>
+
+<button type="button" id="logout-user-btn">
+  🚪 Logout
+</button>
 
   <button id="how-to-play-btn" class="info-btn">
     🏆 Guida dell'esploratore
