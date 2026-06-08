@@ -215,6 +215,7 @@ async function ensureMeExists() {
   }
 }
 }
+
 /**
  * mpWrite(path, value)
  * - scrive un valore (se value è null -> rimuove chiave)
@@ -426,20 +427,38 @@ export async function mpWriteIfMissing(path, value) {
 
 
 export function mpListenActiveRooms(callback) {
-
-
   return onValue(
     ref(db, "activeRooms"),
     (snap) => {
-
       callback(snap.val() || {});
     },
     (err) => {
-
       console.error("🔥 Errore activeRooms:", err);
-
     }
   );
+}
+
+export async function mpClearActivePresence() {
+  await mpAuthReady();
+
+  if (!MP.uid) return;
+
+  const activeRoomsSnap = await get(ref(db, "activeRooms"));
+  const updates = {};
+
+  if (activeRoomsSnap.exists()) {
+    const activeRooms = activeRoomsSnap.val() || {};
+
+    Object.keys(activeRooms).forEach((roomId) => {
+      updates[`activeRooms/${roomId}/users/${MP.uid}`] = null;
+    });
+  }
+
+  if (Object.keys(updates).length) {
+    await update(ref(db), updates);
+  }
+
+  console.log("🚪 Presenza attiva rimossa");
 }
 export async function mpHardResetAllRooms() {
   await mpAuthReady();
