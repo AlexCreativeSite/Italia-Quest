@@ -9,6 +9,7 @@ import {
   mpAddScore,
   mpParticipantsArray,
   mpAuthReady,
+  mpClearActivePresence,
 } from "./firebase-mp.js";
 
 /* =========================
@@ -4485,6 +4486,7 @@ if (logoutUserBtn) {
       return;
     }
 
+    await mpClearActivePresence();
     await mpWrite(`selectedPlayers/${uid}`, null);
     await mpWrite(`afkPlayers/${uid}`, null);
     await mpWrite(`participants/${uid}`, null);
