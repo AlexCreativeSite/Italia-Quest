@@ -441,3 +441,15 @@ export function mpListenActiveRooms(callback) {
     }
   );
 }
+export async function mpHardResetAllRooms() {
+  await mpAuthReady();
+
+  await update(ref(db), {
+    rooms: null,
+    activeRooms: null
+  });
+
+  console.log("🧹 Reset totale stanze completato");
+}
+
+window.mpHardResetAllRooms = mpHardResetAllRooms;
