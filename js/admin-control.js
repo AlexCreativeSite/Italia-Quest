@@ -10,7 +10,7 @@ console.log("🛡️ Admin Control caricato");
 const isLocalAdmin =
   localStorage.getItem("italiaQuestLocalAdmin") === "true" ||
   localStorage.getItem("localAdmin") === "true";
-
+let adminUserRoomMap = {};
 function createAdminControlPanel() {
   const panel = document.createElement("div");
   panel.id = "admin-control-panel";
@@ -112,8 +112,10 @@ const users = Object.entries(participantsObj)
       : selectedObj[uid]
         ? "🟢"
         : "🟡";
+const realRoom =
+  adminUserRoomMap[uid] || "offline";
 
-    return `${icon} ${name}`;
+return `${icon} ${name} <span style="opacity:.75;">🌍 ${realRoom}</span>`;
   });
 
 if (usersEl) {
@@ -180,9 +182,21 @@ function startActiveRoomsMonitor() {
   const box = document.getElementById("ac-active-rooms");
   if (!box) return;
 
+  console.log("🟢 startActiveRoomsMonitor avviato");
+
   mpListenActiveRooms((rooms) => {
 
+    console.log("ACTIVE ROOMS =", rooms);
 
+adminUserRoomMap = {};
+
+Object.entries(rooms || {}).forEach(([roomId, room]) => {
+  Object.entries(room.users || {}).forEach(([uid, user]) => {
+    adminUserRoomMap[uid] = roomId;
+  });
+});
+
+updateAdminControlPanel();
     const entries = Object.entries(rooms || {});
 
     if (!entries.length) {
