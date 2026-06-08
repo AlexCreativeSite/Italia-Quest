@@ -224,16 +224,35 @@ async function mpUpdateActivePresence(nickname = "") {
 
   if (!MP.roomId || !MP.uid) return;
 
-  const activeUserRef =
-    ref(db, `activeRooms/${MP.roomId}/users/${MP.uid}`);
+  const cleanNickname =
+    String(nickname || "Guest").trim().slice(0, 20);
 
-  await update(activeUserRef, {
+  const activeRoomsSnap =
+    await get(ref(db, "activeRooms"));
+
+  const updates = {};
+
+  if (activeRoomsSnap.exists()) {
+    const activeRooms =
+      activeRoomsSnap.val() || {};
+
+    Object.keys(activeRooms).forEach((roomId) => {
+      updates[`activeRooms/${roomId}/users/${MP.uid}`] = null;
+    });
+  }
+
+  updates[`activeRooms/${MP.roomId}/users/${MP.uid}`] = {
     uid: MP.uid,
-    nickname: String(nickname || "Guest").trim().slice(0, 20),
+    nickname: cleanNickname,
     roomId: MP.roomId,
     online: true,
     lastSeen: serverTimestamp()
-  });
+  };
+
+  await update(ref(db), updates);
+
+  const activeUserRef =
+    ref(db, `activeRooms/${MP.roomId}/users/${MP.uid}`);
 
   onDisconnect(activeUserRef).remove();
 }
