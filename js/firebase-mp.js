@@ -211,7 +211,7 @@ async function ensureMeExists() {
   const data = snap.val() || {};
 
   if (data.isRegistered && data.nickname) {
-    await mpUpdateActivePresence(data.nickname);
+    await mpUpdateActivePresence(data.nickname, data.nicknameKey);
   }
 }
 }
@@ -219,7 +219,7 @@ async function ensureMeExists() {
  * mpWrite(path, value)
  * - scrive un valore (se value è null -> rimuove chiave)
  */
-async function mpUpdateActivePresence(nickname = "") {
+async function mpUpdateActivePresence(nickname = "", nicknameKey = "") {
   await mpAuthReady();
 
   if (!MP.roomId || !MP.uid) return;
@@ -227,23 +227,45 @@ async function mpUpdateActivePresence(nickname = "") {
   const cleanNickname =
     String(nickname || "Guest").trim().slice(0, 20);
 
+  const cleanNicknameKey =
+    String(
+      nicknameKey ||
+      cleanNickname.toLowerCase().replace(/[^a-z0-9_-]/g, "")
+    );
+
   const activeRoomsSnap =
     await get(ref(db, "activeRooms"));
 
   const updates = {};
 
   if (activeRoomsSnap.exists()) {
-    const activeRooms =
-      activeRoomsSnap.val() || {};
+    const activeRooms = activeRoomsSnap.val() || {};
 
-    Object.keys(activeRooms).forEach((roomId) => {
-      updates[`activeRooms/${roomId}/users/${MP.uid}`] = null;
+    Object.entries(activeRooms).forEach(([roomId, room]) => {
+      Object.entries(room.users || {}).forEach(([uid, user]) => {
+        const sameUid = uid === MP.uid;
+
+        const sameNicknameKey =
+          user?.nicknameKey &&
+          user.nicknameKey === cleanNicknameKey;
+
+        const sameNickname =
+          String(user?.nickname || "")
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9_-]/g, "") === cleanNicknameKey;
+
+        if (sameUid || sameNicknameKey || sameNickname) {
+          updates[`activeRooms/${roomId}/users/${uid}`] = null;
+        }
+      });
     });
   }
 
   updates[`activeRooms/${MP.roomId}/users/${MP.uid}`] = {
     uid: MP.uid,
     nickname: cleanNickname,
+    nicknameKey: cleanNicknameKey,
     roomId: MP.roomId,
     online: true,
     lastSeen: serverTimestamp()
@@ -355,7 +377,7 @@ const registryRef =
     lastSeen: serverTimestamp(),
   });
 
-  await mpUpdateActivePresence(cleanNickname);
+ await mpUpdateActivePresence(cleanNickname, nicknameKey);
 }
 /**
  * mpInc(uid, field, delta=1)
